@@ -60,8 +60,8 @@ dojo.declare('dojoc.dojocal.views.DayView', dojoc.dojocal.views.MultiDayViewBase
 				endDate = eWidget.getEndDateTime();
 			if (startDate < endDate) {
 				// check for first, last, or intra-day
-				var isFirstDay = eWidget._isFirstDay = date.valueOf() == startDate.valueOf(),
-					isLastDay = eWidget._isLastDay = date.valueOf() == endDate.valueOf(),
+				var isFirstDay = eWidget._isFirstDay = dojo.date.compare(date, startDate, 'date') == 0,
+					isLastDay = eWidget._isLastDay = dojo.date.compare(date, endDate, 'date') == 0,
 					isIntraDay = !isFirstDay && !isLastDay,
 					classes = ['dojocalMultiday'];
 				// add appropriate classes

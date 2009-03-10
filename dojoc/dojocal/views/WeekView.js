@@ -72,8 +72,8 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 						}
 						this._addEventToAllDayLayout(currWidget, this._allDayLayouts[pos]);
 						// check for first, last, or intra-day
-						var isFirstDay = date.valueOf() == startDate.valueOf(),
-							isLastDay = date.valueOf() == endDate.valueOf(),
+						var isFirstDay = dojo.date.compare(date, startDate, 'date') == 0,
+							isLastDay = dojo.date.compare(date, endDate, 'date') == 0,
 							isIntraDay = !isFirstDay && !isLastDay,
 							classes = [baseClasses, 'dojocalMultiday'];
 						// add appropriate classes
