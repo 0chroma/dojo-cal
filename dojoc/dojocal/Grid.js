@@ -64,6 +64,8 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	 */
 
 	templatePath: dojo.moduleUrl('dojoc.dojocal', 'resources/Grid.html'),
+	
+	store: null,
 
 	/* public properties */
 
@@ -279,6 +281,30 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		dojo.setSelectable(this.domNode, false);
 		// subscribe to topics
 		dojo.subscribe('dojoc.dojocal.' + this.widgetid + '.eventAdded', this, '_onEventAdded');
+		
+		if (this.store){
+			this.store.fetch({onComplete: this._onDataLoaded, scope: this});
+		}
+	},
+	
+	/**
+	 * Callback executed after the data store has finished loading the data.
+	 */
+	_onDataLoaded: function(items, request){
+		console.log("Number of items located: " + items.length);
+		// TODO: Move this into dojoc.dojocal.UserCalendar, or make UserCalendar able to handle the JSON object, 
+		// so we don't have to programmatically re-add the events to a cal object
+		var count = 0;
+		for (x in items){
+			var item = items[x];
+			var newCal = 
+				new dojoc.dojocal.UserCalendar({id: 'storeCal' + count, color: '#661100', fontColor: '#665500'});
+			newCal.defaultEventClass = 'dojoc.dojocal.InplaceEditableEvent';
+			newCal.addEvents(item.events);
+			this.addCalendar(newCal);
+			count++;
+		}
+		//this._loadEventsIntoViews(cals);
 	},
 
 	startup: function () {
