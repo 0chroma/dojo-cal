@@ -250,12 +250,16 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		var eventClass = calendar.defaultEventClass || this.defaultEventClass;
 		// initialize events
 		dojo.forEach(calendar.getEvents(), function (event, i) {
-			// assign an id if not already assigned (this may not be foolproof)
+			// assign an id if not already assigned (this may not be foolproof) 
+			// no uid will break write-capable datastore - mtyson 
 			if (!('uid' in event.data))
 				event.data.uid = calendar.id + '_' + i;
 			// use dojo['require'] instead of dojo.require to prevent the build system from trying to bake-in anything
 			// TODO: is the right way to ensure we have this class loaded?
 			dojo['require'](event.options.eventClass || eventClass);
+			
+			// not sure if this is how the event was intended to bubble - mtyson
+			//this.connect(event, 'onDataChange', '_onEventDataChange');
 		});
 		this._loadEventsIntoViews([calendar]);
 	},
@@ -280,7 +284,10 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		// TODO: move this to the views
 		dojo.setSelectable(this.domNode, false);
 		// subscribe to topics
-		dojo.subscribe('dojoc.dojocal.' + this.widgetid + '.eventAdded', this, '_onEventAdded');
+		// note, widgetid is undefined (running against 1.1.1)
+		// Distinguish between adding and updating events
+		dojo.subscribe('dojoc.dojocal.' + (this.widgetid || this.id) + '.eventAdded', this, '_onEventAdded');
+		dojo.subscribe('dojoc.dojocal.' + (this.widgetid || this.id) + '.eventUpdated', this, '_onEventDataChange');
 		
 		if (this.store){
 			this.store.fetch({onComplete: this._onDataLoaded, scope: this});
@@ -298,9 +305,9 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		for (x in items){
 			var item = items[x];
 			var newCal = 
-				new dojoc.dojocal.UserCalendar({id: 'storeCal' + count, color: '#661100', fontColor: '#665500'});
+				new dojoc.dojocal.UserCalendar({id: item.uid, color: '#661100', fontColor: '#665500'}); // TODO: Maybe move UserCalendar.id to .uid to follow iCal spec?
 			newCal.defaultEventClass = 'dojoc.dojocal.InplaceEditableEvent';
-			newCal.addEvents(item.events);
+			newCal.addEvents(item.children);
 			this.addCalendar(newCal);
 			count++;
 		}
@@ -314,7 +321,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		// TODO: ensure that we have no duplicate views (by view.name)?
 		this._views = this.getChildren();
 		dojo.forEach(this._views, function (view) {
-			view.gridId = this.widgetid;
+			view.gridId = this.widgetid || this.id; // widgetid is undefined - mtyson
 		}, this);
 		// clean up the date property (and set all date-related element texts)
 		this.setDate(this.date);
@@ -373,7 +380,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	_onEventAdded: function (eWidget, view) {
 		// listen for event changes,
 		// TODO: this doesn't seem the right way to do this
-//		this.connect(eWidget, 'onDataChange', dojo.hitch(this, '_onEventDataChange', eventWidget));
+		this.connect(eWidget, 'onDataChange', this, "_onEventDataChange"); //dojo.hitch(this, '_onEventDataChange', eventWidget));
 		// add special attributes so we can find this event easily
 		// we add them here so that event widget developers don't have to do it
 		dojo.attr(eWidget.domNode, 'isDojocalEvent', 'true');
@@ -389,7 +396,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		dojo.forEach(this._views, function (view) {
 			dojo.forEach(calendars, function (calendar) {
 				var events = calendar.getEvents(view.getStartDate(), view.getEndDate());
-				view.addEvents(events, calendar);
+				view.addEvents(events, calendar, true);
 			});
 		});
 	},
@@ -465,7 +472,16 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	},
 
 	_onEventDataChange: function (eventWidget) {
-		// TODO:
+		console.debug("EVENT CHANGE: " + eventWidget);
+		if (this.store){
+			if (this.store.getFeatures()['dojo.data.api.Write']){
+				// TODO: Very important: Improve the performance of updating event items.
+				
+				for (var i = 0; i < items.length; i++){
+					this.store.setValue(item, "foo", ("bar" + 1));
+				}
+			}
+		}
 	}
 
 });
