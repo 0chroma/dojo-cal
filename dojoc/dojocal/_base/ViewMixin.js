@@ -129,10 +129,6 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 		this.attributeMap = dojo.mixin(this.attributeMap, this.cascadeAttrMap);
 	},
 
-	getGrid: function () {
-
-	},
-
 	setDate: function (/* Date|String? */ date) {
 		// summary: sets the current datetime. use dojoc.dojocal.dateOnly, if applicable.
 		this.date = this._startDate = this._endDate = djc.dateOnly(date);
@@ -198,20 +194,6 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 
 	updateTimeOfDay: function () {
 		// stub
-	},
-
-	getWeekStartDate: function (date) {
-		// summary: returns the date for the start of the week of the given date
-		return dojo.date.add(date, 'day', -this.date.getDay() + this.getParent().weekStartsOn);
-	},
-
-	getMonthStartDate: function (date) {
-		// summary: returns the date for the start of the month of the given date
-		var wStart = this.getWeekStartDate(date);
-		if (wStart.getMonth() != date.getMonth()) // week started in the prev month
-			return wStart;
-		else
-			return dojo.date.add(wStart, 'day', -Math.ceil((wStart.getDate() - 1) / 7) * 7);
 	},
 
 	/* private properties */

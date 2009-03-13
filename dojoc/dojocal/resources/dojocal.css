@@ -101,6 +101,10 @@
 	width: 2em;
 }
 
+.noLeaderColumn .dojocalDateLeader {
+	display: none;
+}
+
 .dayView .dojocalDateCell {
 	width: 100%;
 }
@@ -240,6 +244,10 @@
 .dojocalWeekSelectorColumn {
 	width: 2em;
 	background-color: #f9f9f9;
+}
+
+.noLeaderColumn .dojocalWeekSelectorColumn {
+	display: none;
 }
 
 .dojocalDayColumn {

@@ -27,6 +27,11 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dijit._Widget, dijit._Templated, 
 
 	headerDatePattern: 'EEE',
 
+	// showLeaderColumn: Boolean
+	// set to true to show the leading column. this column can be used for several purposes, including
+	// displaying an icon per week to allow the user to switch to that week in week view
+	showLeaderColumn: false,
+
 	// monthCellDatePattern: String
 	// the dojo.date.locale-formatted date string used in the date header on each month cell
 	monthCellDatePattern: 'd',
@@ -45,9 +50,9 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dijit._Widget, dijit._Templated, 
 		this.inherited(arguments);
 
 		// calc month start and end dates (end = next month's start - 1)
-		this._weekStartDate = this.getWeekStartDate(date);
-		this._monthStartDate = this.getMonthStartDate(date);
-		this._monthEndDate = dojo.date.add(this.getMonthStartDate(dojo.date.add(date, 'month', 1)), 'day', -1);
+		this._weekStartDate = djc.getWeekStartDate(date, this.weekStartsOn);
+		this._monthStartDate = djc.getMonthStartDate(date, this.weekStartsOn);
+		this._monthEndDate = dojo.date.add(djc.getMonthStartDate(dojo.date.add(date, 'month', 1), this.weekStartsOn), 'day', -1);
 
 		// if month changed
 		// Note: don't change the month view if we're currently viewing it and the new date is still
@@ -71,10 +76,16 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dijit._Widget, dijit._Templated, 
 		return this._monthEndDate;
 	},
 
+	setShowLeaderColumn: function (show) {
+		this.showLeaderColumn = show;
+		this._showLeaderColumn(show);
+	},
+
 	postCreate: function () {
 		this.inherited(arguments);
 		// create programmatic dom elements
 		this._createMonthRows();
+		this._showLeaderColumn(this.showLeaderColumn);
 	},
 
 	destroy: function () {
@@ -169,6 +180,13 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dijit._Widget, dijit._Templated, 
 //				this._dayLayouts[this._todayWeekdayColNum].appendChild(this.daysColumnTimeMarker);
 //			this.daysColumnTimeMarker.style.display = '';
 //		}
+	},
+
+	_showLeaderColumn: function (show) {
+		if (show)
+			dojo.removeClass(this.domNode, 'noLeaderColumn');
+		else
+			dojo.addClass(this.domNode, 'noLeaderColumn');
 	},
 
 	/* internal event handlers */

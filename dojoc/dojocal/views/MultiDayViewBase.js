@@ -5,8 +5,7 @@
 dojo.provide('dojoc.dojocal.views.MultiDayViewBase');
 
 dojo.require('dijit._Templated');
-dojo.require('dijit._Widget');
-dojo.require('dojoc.dojocal._base.ViewMixin');
+dojo.require('dojoc.dojocal._base.ViewBase');
 
 (function () { // closure for local variables
 
@@ -16,7 +15,7 @@ var djc = dojoc.dojocal,
 /**
  * dojoc.dojocal.views.MultiDayViewBase
  */
-dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dijit._Widget, dijit._Templated, dojoc.dojocal._base.ViewMixin], {
+dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBase, dijit._Templated], {
 
 	templatePath: dojo.moduleUrl('dojoc.dojocal.views', 'MultiDayView.html'),
 
@@ -31,57 +30,6 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dijit._Widget, dijit._Temp
 	// the event collapsed or expanded
 	isExpanded: false,
 
-	eventPositionerClass: 'dojoc.dojocal._base.EventPositioner',
-
-	addEvent: function (/* dojoc.dojocal.UserEvent */ e, calendar) {
-		this.inherited(arguments);
-		// TODO: change this so that we determine which dayLayout will be affected in advance and only check overlapping on that one
-		if (e.options)
-			e.options.eventClass = e.options.eventClass || this.eventClass;
-		var w = this._createEventWidget(e, calendar);
-		this._addEvent(w);
-		w.startup();
-		this._postEventChange();
-	},
-
-	addEvents: function (/* Array of dojoc.dojocal.UserEvent */ events, calendar) {
-		var _this = this;
-		dojo.forEach(events, function (e) {
-			if (e.options)
-				e.options.eventClass = e.options.eventClass || _this.eventClass;
-			var w = _this._createEventWidget(e, calendar);
-			_this._addEvent(w);
-			w.startup();
-		});
-		this._postEventChange();
-	},
-
-	removeEvent: function (/* dojoc.dojocal._base.EventMixin */ event) {
-		// TODO!!!!
-		this.inherited(arguments);
-		this._postEventChange();
-	},
-
-	clearEvents: function () {
-		this.inherited(arguments);
-		this._removeAllEventsFromView(this.tableNode);
-		this._removeAllEventsFromView(this.allDayTableNode);
-	},
-
-//	beginUpdate: function () {
-//		this.inherited(arguments);
-//	},
-//
-//	endUpdate: function () {
-//		this.inherited(arguments);
-//		if (!this.isUpdating()) {
-//			dojo.forEach(this._dayLayouts, function (layout) {
-//				this._checkEventOverlapping(layout, this.isExpanded);
-//			}, this);
-//			this._checkAllDayEventOverlapping(this.footerNode, this._startDate, 7);
-//		}
-//	},
-//
 	setStartOfDay: function (/* Number */ minuteOfDay) {
 		this.inherited(arguments);
 		this._setStartOfDay(minuteOfDay);
@@ -93,19 +41,13 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dijit._Widget, dijit._Temp
 	},
 
 	updateTimeOfDay: function () {
+		// TODO: is this being subscribed to within a central setTimeout?
 		this._checkTodayHighlighting();
 		this._updateTimeMarker();
 	},
 
 	postCreate: function () {
 		this.inherited(arguments);
-		// create helper objects
-		var epClassName = this.eventPositionerClass;
-		if (epClassName) {
-			dojo['require'](epClassName);
-			var epClass = dojo.getObject(epClassName);
-			this._eventPositioner = new epClass();
-		}
 		// create programmatic dom elements
 		this._createDayColumns();
 		this._createHourlyRows();
@@ -118,9 +60,9 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dijit._Widget, dijit._Temp
 		dojo.subscribe('dojoc.dojocal.' + this.gridId + '.setSplitterHeight', dojo.hitch(this, '_splitterResize', this.splitterNodeMoveable));
 	},
 
-	startup: function () {
-		this.inherited(arguments);
-	},
+//	startup: function () {
+//		this.inherited(arguments);
+//	},
 
 	destroy: function () {
 		// clear out references to dom nodes
@@ -277,37 +219,23 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dijit._Widget, dijit._Temp
 		// TODO: put common functionality here (see subclasses for now)
 	},
 
-	_createEventWidget: function (userEvent, calendar) {
-		var eventClass = userEvent.options.eventClass || calendar.defaultEventClass || this.defaultEventClass,
-			eventConstructor = dojo.getObject(eventClass),
-			eventWidget = this._newEventWidget(eventConstructor, userEvent.data, userEvent.options.color, userEvent.options.fontColor, calendar.id);
-		return eventWidget;
-	},
-
-	_cloneEventWidget: function (origWidget) {
-		var eventClass = dojo.getObject(origWidget.declaredClass),
-			eventWidget = this._newEventWidget(eventClass, origWidget.data, origWidget.color, origWidget.fontColor, origWidget.calendarId);
-		return eventWidget;
-	},
-
 	_newEventWidget: function (clazz, data, color, fontColor, calendarId) {
-		var eventWidget = new clazz({data: data, color: color, fontColor: fontColor, calendarId: calendarId});
+		var eventWidget = this.inherited(arguments);
 		// connect events
-		this.connect(eventWidget, 'onDataChange', dojo.hitch(this, '_onEventDataChange', eventWidget));
 		if (this.dndMode != dndModes.NONE) {
 			dojo.addClass(eventWidget.domNode, 'draggableEvent');
 			var params = {delay: this.dndDetectDistance, sizerNode: eventWidget.handleNode || null},
 				moveable = eventWidget.moveable = new dojoc.dojocal._base.EventMoveable(eventWidget.domNode, params);
 			if (eventWidget.isAllDay()) {
-				this.connect(moveable, 'onMoveStart', dojo.hitch(this, '_onDayEventDragStart', eventWidget));
+				eventWidget.connect(moveable, 'onMoveStart', dojo.hitch(this, '_onDayEventDragStart', eventWidget));
 				// TODO: change these too:
-				this.connect(moveable, 'onMoveStop', dojo.hitch(this, '_onEventDragStop', eventWidget));
-				this.connect(moveable, 'onMoving', dojo.hitch(this, '_onEventDragging', eventWidget));
+				eventWidget.connect(moveable, 'onMoveStop', dojo.hitch(this, '_onEventDragStop', eventWidget));
+				eventWidget.connect(moveable, 'onMoving', dojo.hitch(this, '_onEventDragging', eventWidget));
 			}
 			else {
-				this.connect(moveable, 'onMoveStart', dojo.hitch(this, '_onEventDragStart', eventWidget));
-				this.connect(moveable, 'onMoveStop', dojo.hitch(this, '_onEventDragStop', eventWidget));
-				this.connect(moveable, 'onMoving', dojo.hitch(this, '_onEventDragging', eventWidget));
+				eventWidget.connect(moveable, 'onMoveStart', dojo.hitch(this, '_onEventDragStart', eventWidget));
+				eventWidget.connect(moveable, 'onMoveStop', dojo.hitch(this, '_onEventDragStop', eventWidget));
+				eventWidget.connect(moveable, 'onMoving', dojo.hitch(this, '_onEventDragging', eventWidget));
 			}
 		}
 		return eventWidget;
@@ -335,76 +263,13 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dijit._Widget, dijit._Temp
 		dojo.publish('dojoc.dojocal.' + this.gridId + '.eventAdded', [eWidget, this]);
 	},
 
-	_getAllEventsInNode: function (/* DOMNode */ viewEl, /* String? */ calendarId, /* String? */ eventId) {
-		// retrieve all widgets whose nodes we've marked as isDojocalEvent
-		// if the caller specified a particular calendar or event id, then filter further
-		var filter = '[isDojocalEvent]';
-		if (calendarId)
-			filter += '[dojocalCalId=' + calendarId + ']';
-		if (eventId)
-			filter += '[dojocalEventId=' + eventId + ']';
-		return dojo.query(filter, viewEl).map(dijit.byNode);
-	},
-
 	_removeAllEventsFromView: function (/* DOMNode */ viewEl, /* String? */ calendarId, /* String? */ eventId) {
 		dojo.forEach(this._getAllEventsInNode(viewEl, calendarId, eventId), function (e) {
 			e.destroy();
 		});
 	},
 
-	/* handy day-of-week translators */
-	// TODO: fix these for multi-week views
-
-	_dayOfWeekToCol: function (dayOfWeek) {
-		return (dayOfWeek - this.weekStartsOn) % 7;
-	},
-
-	_colToDayOfWeek: function (colNum) {
-		return (colNum + this.weekStartsOn) % 7;
-	},
-
-	_nodeToCol: function (node) {
-		var layout = this._nodeToLayout(node);
-		return parseInt(dojo.attr(layout, 'day'));
-	},
-
-	_nodeToDate: function (node) {
-		var col = this._nodeToCol(node);
-		return dojo.date.add(this._startDate, 'day', col);
-	},
-
-	_nodeToLayout: function (node) {
-		return djc.getAncestorByAttrName(node, 'day');
-	},
-
-	_timeOfDayInMinutes: function (date) {
-		return date.getHours() * 60 + date.getMinutes() + Math.round(date.getSeconds() / 60);
-	},
-
 	/* common event handlers */
-
-	_onDayLayoutClick: function (e) {
-		// unselect the selected event widget
-		if (this._selectedEvent) {
-			this._selectedEvent.setSelected(false);
-			delete this._selectedEvent;
-		}
-		// identify what was clicked (type) and the pertinent node.
-		// attribute names must be in reverse dom order
-		var node, type;
-		dojo.some(['isdojocalevent', 'day'], function (attrName) {
-			type = attrName;
-			return node = djc.getAncestorByAttrName(e.target, attrName);
-		});
-		if (node) {
-			if (type == 'day') {
-				return this._onDayClick(node, e);
-			}
-			else if (type == 'isdojocalevent') {
-				return this._onEventClick(dijit.byNode(node), e);
-			}
-		}
-	},
 
 	_postEventChange: function () {
 		// this must be run after adding or removing one or more events
@@ -473,6 +338,7 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dijit._Widget, dijit._Temp
 	},
 
 	/***** splitter event handlers and methods *****/
+	// TODO: move splitter handling to a SplitterMixin class
 
 	_prepareSplitters: function () {
 		var params = {mover: dojoc.dojocal._base.Mover};
@@ -541,14 +407,14 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dijit._Widget, dijit._Temp
 	},
 
 	_splitterResize: function (splitter, sizedHeight, flexBottom) {
-		splitter._sizedNode.style.height = newHeight;
+		splitter._sizedNode.style.height = sizedHeight;
 		// TODO: let splitter reside on top or bottom
-		splitter._flexNode.style.bottom = newBottom;
+		splitter._flexNode.style.bottom = flexBottom;
 	},
 
 	/***** drag and drop handlers and methods ****/
 
-	/***** TODO: separate common from view-specific code *****/
+	/***** TODO: move all of this to EventMoveable *****/
 
 	// time a user lingers near a column before snapping the event widget to it
 	_dragSnapTimeout: 500,
@@ -644,8 +510,7 @@ console.log('_onAllDayEventDragStart')
 			if (eventWidget._dndData.col != newDragData.col)
 				this._checkEventOverlapping(newDragData.col);
 		}
-		eventWidget.setSelected(true);
-		this._selectedEvent = eventWidget;
+		this._selectEventWidget(eventWidget);
 		delete eventWidget._dndData;
 //console.log('dnd data deleted')
 		// TODO: publish the event change
@@ -824,40 +689,29 @@ console.log('_getDraggedEventCurrentData')
 	/* event handlers */
 
 	_onHeaderDateClick: function (e) {
-		if (this._selectedEvent) {
-			this._selectedEvent.setSelected(false);
-			delete this._selectedEvent;
-		}
-		// TODO: return view, too
+		this._selectEventWidget(null);
 		var cell = djc.getAncestorByAttrName(e.target, 'day'),
 			date = dojo.date.add(this._weekStartDate, 'day', parseInt(dojo.attr(cell, 'day')));
-		if (cell && (this.onHeaderClick || this.onHeaderClick(e, date) != false)) {
-			// TODO: raise a topic instead of the onXXXClick
+		if (cell && (this.onHeaderClick || this.onHeaderClick(e, date, this) != false)) {
+			// TODO: raise a topic instead of the onXXXClick and capture it in the grid? or remove it from the grid?
 		}
 	},
 
 	_onHeaderDateDblClick: function (e) {
-		// TODO: return view, too
 		var cell = djc.getAncestorByAttrName(e.target, 'day'),
 			date = dojo.date.add(this._weekStartDate, 'day', parseInt(dojo.attr(cell, 'day')));
-		if (cell && (this.onHeaderDblClick || this.onHeaderDblClick(e, date) != false)) {
-			// TODO: raise a topic instead of the onXXXClick
+		if (cell && (this.onHeaderDblClick || this.onHeaderDblClick(e, date, this) != false)) {
+			// TODO: raise a topic instead of the onXXXClick and capture it in the grid? or remove it from the grid?
 		}
 	},
 
 	_onDayClick: function (layoutNode, e) {
-		// TODO: this is hokey because it's called from the views
+		// TODO: use layoutNode instead of looking it up below?
 		var cell = djc.getAncestorByAttrName(e.target, 'day'),
 			date = dojo.date.add(this._weekStartDate, 'day', parseInt(dojo.attr(cell, 'day')));
-		if (cell && (!this.onDayClick || this.onDayClick(e, date) != false)) {
-			// TODO: raise a topic instead of the onXXXClick
+		if (cell && (!this.onDayClick || this.onDayClick(e, date, this) != false)) {
+			// TODO: raise a topic instead of the onXXXClick and capture it in the grid? or remove it from the grid?
 		}
-	},
-
-	_onEventClick: function (eventWidget, e) {
-		// TODO: this is hokey because it's called from the views
-		eventWidget.setSelected(true);
-		this._selectedEvent = eventWidget;
 	}
 
 

@@ -33,13 +33,15 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 		var prevWeekStartDate = this._startDate;
 		this.inherited(arguments);
 		// calc week start date
-		this._startDate = this.getWeekStartDate(this.date);
+		this._startDate = djc.getWeekStartDate(date, this.weekStartsOn);
 		this._endDate = dojo.date.add(this._startDate, 'day', 6);
 		// if the week changed
 		if (!prevWeekStartDate || dojo.date.compare(prevWeekStartDate, this._startDate) != 0) {
 			this._setHeaderDates();
 			this._setCornerHeaderDate();
 			this._setTimeColumnDates(); // TODO: does this really belong here (for DST)?
+			this._checkDayHighlighting();
+			this._checkTodayHighlighting();
 		}
 	},
 

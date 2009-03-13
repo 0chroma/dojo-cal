@@ -203,8 +203,18 @@ dojo.mixin(dojoc.dojocal, {
 		return d;
 	},
 
-	getWeekStart: function () {
+	getWeekStartDate: function (/* Date */ date, /* Number */ weekStartsOn) {
+		// summary: returns the date for the start of the week of the given date
+		return dojo.date.add(date, 'day', -date.getDay() + weekStartsOn);
+	},
 
+	getMonthStartDate: function (/* Date */ date, /* Number */ weekStartsOn) {
+		// summary: returns the date for the start of the month of the given date
+		var wStart = this.getWeekStartDate(date, weekStartsOn);
+		if (wStart.getMonth() != date.getMonth()) // week started in the prev month
+			return wStart;
+		else
+			return dojo.date.add(wStart, 'day', -Math.ceil((wStart.getDate() - 1) / 7) * 7);
 	}
 
 });

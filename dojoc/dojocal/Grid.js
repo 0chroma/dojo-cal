@@ -64,7 +64,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	 */
 
 	templatePath: dojo.moduleUrl('dojoc.dojocal', 'resources/Grid.html'),
-	
+
 	store: null,
 
 	/* public properties */
@@ -171,15 +171,15 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 
 	// onDayClick: Function
 	// connect to this event to capture user clicks on the day cells
-	onDayClick: function (e, date) {},
+	onDayClick: function (e, date, view) {},
 
 	// onHeaderClick: Function
 	// connect to this event to capture user clicks on the header cells
-	onHeaderClick: function (e, date) {},
+	onHeaderClick: function (e, date, view) {},
 
 	// onHeaderDblClick: Function
 	// connect to this event to capture user double-clicks on the header cells
-	onHeaderDblClick: function (e, date) {},
+	onHeaderDblClick: function (e, date, view) {},
 
 	// TODO: add many more public event hooks
 
@@ -194,6 +194,8 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		this.currentView = dojo.isString(newView) ? this._findView(newView) : newView;
 		this._switchView(oldView, this.currentView, true);
 	},
+
+	// TODO: add methods to get, add, and remove views
 
 	setDate: function (/* Date|String? */ date) {
 		// summary: sets the new date for the grid and adjust the views accordingly
@@ -281,23 +283,23 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		dojo.setSelectable(this.domNode, false);
 		// subscribe to topics
 		dojo.subscribe('dojoc.dojocal.' + this.widgetid + '.eventAdded', this, '_onEventAdded');
-		
+
 		if (this.store){
 			this.store.fetch({onComplete: this._onDataLoaded, scope: this});
 		}
 	},
-	
+
 	/**
 	 * Callback executed after the data store has finished loading the data.
 	 */
 	_onDataLoaded: function(items, request){
 		console.log("Number of items located: " + items.length);
-		// TODO: Move this into dojoc.dojocal.UserCalendar, or make UserCalendar able to handle the JSON object, 
+		// TODO: Move this into dojoc.dojocal.UserCalendar, or make UserCalendar able to handle the JSON object,
 		// so we don't have to programmatically re-add the events to a cal object
 		var count = 0;
 		for (x in items){
 			var item = items[x];
-			var newCal = 
+			var newCal =
 				new dojoc.dojocal.UserCalendar({id: 'storeCal' + count, color: '#661100', fontColor: '#665500'});
 			newCal.defaultEventClass = 'dojoc.dojocal.InplaceEditableEvent';
 			newCal.addEvents(item.events);
@@ -335,7 +337,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 
 	_fillContent: function(/*DomNode*/ source){
 		// override _Templated._fillContent to cascade shared properties to views before they are constructed
-		// TODO: is there a better dojo way to do this?
+		// TODO: is there a better dojo way to do this? --> yes, defer view rendering to startup and request properties?
 		var props = {},
 			attrs = dojoc.dojocal._base.ViewMixin.prototype.cascadeAttrMap,
 			_this = this;
@@ -374,11 +376,6 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		// listen for event changes,
 		// TODO: this doesn't seem the right way to do this
 //		this.connect(eWidget, 'onDataChange', dojo.hitch(this, '_onEventDataChange', eventWidget));
-		// add special attributes so we can find this event easily
-		// we add them here so that event widget developers don't have to do it
-		dojo.attr(eWidget.domNode, 'isDojocalEvent', 'true');
-		dojo.attr(eWidget.domNode, 'dojocalCalId', eWidget.calendarId);
-		dojo.attr(eWidget.domNode, 'dojocalEventId', eWidget.data.uid);
 	},
 
 	_onEventRemoved: function (eWidget, view) {
