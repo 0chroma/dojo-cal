@@ -26,7 +26,8 @@
 	padding: 0;
 }
 
-.dojocal .mutliDayView {
+.dojocal .monthView,
+.dojocal .multiDayView {
 	/* needed for animations */
 	position: absolute;
 	width: 100%;

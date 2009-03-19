@@ -46,6 +46,21 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 	},
 
 	_addEvent: function (eWidget) {
+		function showTitle (widget, size) {
+			// expand title to span all pseudo-widgets
+			// we use the last widget since it's topmost in the z-order (we'd have to change the
+			// z-index of the TDs to fix this)
+			dojo.style(widget.domNode, {
+				overflow: 'visible', // allows text to spread across cloned events
+				zIndex: '10 !important' // overrides hovered/selected of other events which covers title text
+			});
+			dojo.style(widget.titleNode, {
+				visibility: 'visible',
+				width: size * 100 + '%', // span all sister-widgets in this row
+				left: -(size - 1) * 100 + '%', // position at first sister-widget
+				marginLeft: -(size - 2) +'px' // fine-tuning due to table cell borders / event padding. TODO: get the padding from computed style
+			});
+		}
 		if (eWidget.isAllDay()) {
 			// check for event splitting due to multi-day events
 			var startDate = eWidget.getDateTime(),
@@ -56,7 +71,7 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 					weekLast = djc.minDate(endDate, this._endDate),
 					date = weekFirst,
 					pos = this._dayOfWeekToCol(weekFirst.getDay()),
-					visCount = 0, // count of visible widgets for this event
+					visCount = 1, // count of visible widgets for this event
 					currWidget = eWidget,
 					root; // the first widget (set below)
 				do {
@@ -70,6 +85,11 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 						currWidget.startup();
 						node = currWidget.domNode;
 						visCount++;
+					}
+					// if we hit the end of the week, show the title for the widgets in this week
+					if ((pos + 1) % 7 == 0) {
+						showTitle(currWidget, visCount);
+						visCount = 0;
 					}
 					this._addEventToAllDayLayout(currWidget, this._allDayLayouts[pos]);
 					// check for first, last, or intra-day
@@ -91,12 +111,8 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 					date = dojo.date.add(date, 'day', 1);
 				}
 				while (date <= weekLast);
-				// expand title to span all pseudo-widgets
-				// we use the last widget since it's topmost in the z-order (we'd have to change the
-				// z-index of the TDs to fix this)
-				dojo.style(currWidget.titleNode, 'width', (visCount + 1) * 100 + '%');
-				dojo.style(currWidget.titleNode, 'left', -(visCount) * 100 + '%');
-				dojo.style(currWidget.titleNode, 'visibility', 'visible');
+				if (visCount > 0)
+					showTitle(currWidget, visCount);
 			}
 			// otherwise, single-day event
 			else {

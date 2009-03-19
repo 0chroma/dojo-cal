@@ -53,6 +53,21 @@ dojo.declare('dojoc.dojocal.views.DayView', dojoc.dojocal.views.MultiDayViewBase
 	},
 
 	_addEvent: function (eWidget) {
+		function showTitle (widget, size) {
+			// expand title to span all pseudo-widgets
+			// we use the last widget since it's topmost in the z-order (we'd have to change the
+			// z-index of the TDs to fix this)
+			dojo.style(widget.domNode, {
+				overflow: 'visible', // allows text to spread across cloned events
+				zIndex: '10 !important' // overrides hovered/selected of other events which covers title text
+			});
+			dojo.style(widget.titleNode, {
+				visibility: 'visible',
+				width: size * 100 + '%', // span all sister-widgets in this row
+				left: -(size - 1) * 100 + '%', // position at first sister-widget
+				marginLeft: -(size - 2) +'px' // fine-tuning due to table cell borders / event padding. TODO: get the padding from computed style
+			});
+		}
 		if (eWidget.isAllDay()) {
 			// check for event splitting due to multi-day events
 			var date = this.date,
@@ -74,6 +89,7 @@ dojo.declare('dojoc.dojocal.views.DayView', dojoc.dojocal.views.MultiDayViewBase
 				dojo.addClass(eWidget.domNode, classes.join(' '));
 			}
 			this._addEventToAllDayLayout(eWidget, this._allDayLayouts[0]);
+			showTitle(eWidget, 1);
 		}
 		else
 			this._addEventToDayLayout(eWidget, this._dayLayouts[0]);

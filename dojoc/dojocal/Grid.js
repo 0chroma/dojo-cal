@@ -322,6 +322,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		// TODO: ensure that we have no duplicate views (by view.name)?
 		this._views = this.getChildren();
 		dojo.forEach(this._views, function (view) {
+			dojo.style(view.domNode, 'visibility', 'hidden');
 			view.gridId = this.widgetid || this.id; // widgetid is undefined - mtyson
 		}, this);
 		// clean up the date property (and set all date-related element texts)
