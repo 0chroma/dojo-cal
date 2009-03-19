@@ -63,6 +63,10 @@ dojo.declare('dojoc.dojocal._base.EventMixin', null, {
 		return dojoc.dojocal.dateOnly(this.getDateTime()) < dojoc.dojocal.dateOnly(this.getEndDateTime());
 	},
 
+	getUid: function () {
+		return this.data && this.data.uid;
+	},
+
 	getDateTime: function () {
 		// summary: returns the startDateTime property from the data/UserEvent
 		//   as a Javascript Date object
@@ -83,16 +87,16 @@ dojo.declare('dojoc.dojocal._base.EventMixin', null, {
 		return endDate;
 	},
 
-	setSelected: function (selected) {
+	setSelected: function (/* Boolean */ selected) {
 		// summary:
 		// override this method to change the styling or add special behavior when the event is selected
-		this.selected = selected;
+		this.selected = !!selected;
 	},
 
-	setEditing: function (editing) {
+	setEditing: function (/* Boolean */ editing) {
 		// summary:
 		// override this method to change the styling or add special behavior when the event is being edited
-		this.editing = editing;
+		this.editing = !!editing;
 	},
 
 	setColor: function (/* String */ color) {

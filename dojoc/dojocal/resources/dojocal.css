@@ -502,6 +502,7 @@
 /* these classes get applied by the grid automatically */
 
 .dojocalEventBox {
+	/* TODO: is this rule used? */
 	position: absolute;
 	left: 0;
 	width: 100%;
@@ -626,10 +627,12 @@
 	height: expression(offsetParent.offsetHeight + 'px');
 }
 
+.dojocalEvent-hovered,
 .dojocalEvent-selected {
 	z-index: 20;
 }
 
+.dojocalEvent-hovered .dojocalEventBackground,
 .dojocalEvent-selected .dojocalEventBackground {
 	opacity: 0.85;
 	-moz-opacity: 0.85;
@@ -655,8 +658,7 @@
 	display: none; /* don't display until hovered */
 }
 
-.dj_ie6 .dojocalEventHandleThumb, /* IE6 doesn't support hover on anything but A tags */
-.dojocalEvent:hover .dojocalEventHandleThumb {
+.draggableEvent.dojocalEvent-hovered .dojocalEventHandleThumb {
 	display: block;
 }
 
@@ -667,11 +669,11 @@
 	/*position: relative;*/
 }
 
-.dojocalFooter .dojocalEventTime {
+.dojocalAllDay .dojocalEventTime {
 	display: none;
 }
 
-.dojocalFooter .dojocalEventHandle {
+.dojocalAllDay .dojocalEventHandle {
 	position: absolute;
 	right: 0;
 	width: 0.5em;
@@ -679,7 +681,7 @@
 	cursor: e-resize;
 }
 
-.dojocalFooter .dojocalEventHandleThumb {
+.dojocalMultiday .dojocalEventHandleThumb {
 	height: 1em;
 	width: 1px;
 	margin: 4px 1px 3px 1px;
@@ -687,10 +689,6 @@
 }
 
 /* MultiDay events (these are AllDay events that span multiple days) */
-
-.dojocalMultiday {
-	overflow: visible; /* allows text to spread across pseudo events */
-}
 
 .dojocalMultiday.firstDay,
 .dojocalMultiday.intraDay {
@@ -743,8 +741,10 @@
 	padding: 1px 4px 0 4px;
 }
 
-.dojocalMultiday.pseudoDay .dojocalEventTitle {
-	visibility: hidden; /* let the root widget show the title */
+.dojocalMultiday.firstDay .dojocalEventTitle,
+.dojocalMultiday.intraDay .dojocalEventTitle {
+	/* let the last widget show the title since it is topmost because of the TDs */
+	visibility: hidden;
 }
 
 .dojocalMultiday.intraDay .dojocalEventHandle {
@@ -761,4 +761,18 @@
 	border-width: 0 2px 0 0;
 	border-style: dotted;
 	background-color: transparent;
+}
+
+/* month view */
+
+.monthView .dojocalEventTime {
+	display: none;
+}
+
+.monthView .dojocalEvent {
+	font-size: 66.667%;
+}
+
+.monthView .dojocalEventTitle {
+	white-space: nowrap;
 }

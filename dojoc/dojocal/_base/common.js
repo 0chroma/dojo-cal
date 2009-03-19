@@ -193,28 +193,46 @@ dojo.mixin(dojoc.dojocal, {
 
 	/* useful date functions */
 
-	dateOnly: function (date) {
+	dateOnly: function (/* Date */ date) {
+		// summary: returns the date portion of the Date object
 		return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 	},
 
-	timeOnly: function (date) {
+	timeOnly: function (/* Date */ date) {
+		// summary: returns the time portion of the Date object
 		var d = new Date(0, 0, 0, date.getHours(), date.getMinutes(), date.getSeconds());
 		d.setMilliseconds(date.getMilliseconds());
 		return d;
 	},
 
+	minDate: function (/* Dates... */) {
+		// summary: returns a new date equal to the smallest of the Date parameters supplied
+		//  example: var earliest = dojoc.dojocal.minDate(date1, date2, date3);
+		return new Date(Math.min.apply(null, arguments));
+	},
+
+	maxDate: function (/* Dates... */) {
+		// summary: returns a new date equal to the largest of the Date parameters supplied
+		//  example: var latest = dojoc.dojocal.maxDate(date1, date2, date3);
+		return new Date(Math.max.apply(null, arguments));
+	},
+
 	getWeekStartDate: function (/* Date */ date, /* Number */ weekStartsOn) {
 		// summary: returns the date for the start of the week of the given date
-		return dojo.date.add(date, 'day', -date.getDay() + weekStartsOn);
+		return this.dateOnly(dojo.date.add(date, 'day', -date.getDay() + weekStartsOn));
 	},
 
 	getMonthStartDate: function (/* Date */ date, /* Number */ weekStartsOn) {
 		// summary: returns the date for the start of the month of the given date
+		//  Note: this is not necessarily the 1st of the month!  It's the first day in the grid which
+		//  could be in the previous month.
 		var wStart = this.getWeekStartDate(date, weekStartsOn);
-		if (wStart.getMonth() != date.getMonth()) // week started in the prev month
+		// if current week started in the prev month (then we got it already)
+		if (wStart.getMonth() != date.getMonth())
 			return wStart;
+		// go back a few weeks (approx. day-of-month / 7) to get the right one
 		else
-			return dojo.date.add(wStart, 'day', -Math.ceil((wStart.getDate() - 1) / 7) * 7);
+			return this.dateOnly(dojo.date.add(wStart, 'day', -Math.ceil((wStart.getDate() - 1) / 7) * 7));
 	}
 
 });
@@ -282,11 +300,16 @@ dojo.declare('dojoc.dojocal.UserCalendar', null, {
 
 	getEvents: function (/* Date? */ startDate, /* Date? */ endDate) {
 		// summary: gets all dates that cross the given date range (or all events if no range is given)
-		// TODO: recurrence
+		//   startDate: all events must end on or after this date (whole date: not time is considered)
+		//   endDate: all events must start on or before this date (whole date: not time is considered)
+		//   Note: startDate and endDate
+		// TODO: recurrence?
+		// add a day to endDate so that we don't miss events that start any time on the last day
+		endDate = dojo.date.add(endDate, 'day', 1);
 		if (startDate && endDate) {
 			return dojo.filter(this._events, function (e) {
 				var end = dojo.date.add(e.data._startDateTime, 'second', e.data.duration); // TODO? assumes seconds!!!!!
-				return e.data._startDateTime <= endDate && end >= startDate;
+				return e.data._startDateTime < endDate && end >= startDate;
 			});
 		}
 		else

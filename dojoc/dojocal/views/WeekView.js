@@ -52,60 +52,63 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 				endDate = eWidget.getEndDateTime();
 			if (startDate < endDate) {
 				// loop through entire week and add pseudo widgets if needed
-				var weekFirst = this._startDate,
-					weekLast = dojo.date.add(weekFirst, 'day', 6),
+				var weekFirst = djc.maxDate(startDate, this._startDate),
+					weekLast = djc.minDate(endDate, this._endDate),
 					date = weekFirst,
-					pos = 0,
+					pos = this._dayOfWeekToCol(weekFirst.getDay()),
 					visCount = 0, // count of visible widgets for this event
 					currWidget = eWidget,
 					root; // the first widget (set below)
 				do {
-					// check if this is a valid day for this event widget
-					if (date >= startDate && date <= endDate) {
-						if (!root) {
-							root = currWidget;
-							var node = eWidget.domNode,
-								baseClasses = node.className;
-						}
-						else {
-							currWidget = this._cloneEventWidget(eWidget);
-							node = currWidget.domNode;
-							visCount++;
-						}
-						this._addEventToAllDayLayout(currWidget, this._allDayLayouts[pos]);
-						// check for first, last, or intra-day
-						var isFirstDay = dojo.date.compare(date, startDate, 'date') == 0,
-							isLastDay = dojo.date.compare(date, endDate, 'date') == 0,
-							isIntraDay = !isFirstDay && !isLastDay,
-							classes = [baseClasses, 'dojocalMultiday'];
-						// add appropriate classes
-						if (isFirstDay)
-							classes.push('firstDay');
-						if (isLastDay)
-							classes.push('lastDay');
-						if (isIntraDay)
-							classes.push('intraDay');
-						if (currWidget != root)
-							classes.push('pseudoDay');
-						node.className = classes.join(' ');
+					if (!root) {
+						root = currWidget;
+						var node = eWidget.domNode,
+							baseClasses = node.className;
 					}
+					else {
+						currWidget = this._cloneEventWidget(eWidget);
+						currWidget.startup();
+						node = currWidget.domNode;
+						visCount++;
+					}
+					this._addEventToAllDayLayout(currWidget, this._allDayLayouts[pos]);
+					// check for first, last, or intra-day
+					var isFirstDay = dojo.date.compare(date, startDate, 'date') == 0,
+						isLastDay = dojo.date.compare(date, endDate, 'date') == 0,
+						isIntraDay = !isFirstDay && !isLastDay,
+						classes = [baseClasses, 'dojocalAllDay dojocalMultiday'];
+					// add appropriate classes
+					if (isFirstDay)
+						classes.push('firstDay');
+					if (isLastDay)
+						classes.push('lastDay');
+					if (isIntraDay)
+						classes.push('intraDay');
+					if (currWidget != root)
+						classes.push('pseudoDay');
+					node.className = classes.join(' ');
 					pos++;
 					date = dojo.date.add(date, 'day', 1);
 				}
 				while (date <= weekLast);
 				// expand title to span all pseudo-widgets
-				dojo.style(root.titleNode, 'width', (visCount + 1) * 100 + '%');
+				// we use the last widget since it's topmost in the z-order (we'd have to change the
+				// z-index of the TDs to fix this)
+				dojo.style(currWidget.titleNode, 'width', (visCount + 1) * 100 + '%');
+				dojo.style(currWidget.titleNode, 'left', -(visCount) * 100 + '%');
+				dojo.style(currWidget.titleNode, 'visibility', 'visible');
 			}
 			// otherwise, single-day event
 			else {
 				pos = this._dayOfWeekToCol(startDate.getDay());
+				dojo.addClass(currWidget.domNode, 'dojocalAllDay');
 				this._addEventToAllDayLayout(eWidget, this._allDayLayouts[pos]);
 			}
 		}
 		else {
 			// TODO: check for event splitting due to crossing of midnight
-			var dayNum = this._dayOfWeekToCol(eWidget.data._startDateTime.getDay());
-			this._addEventToDayLayout(eWidget, this._dayLayouts[dayNum]);
+			pos = this._dayOfWeekToCol(eWidget.getDateTime().getDay());
+			this._addEventToDayLayout(eWidget, this._dayLayouts[pos]);
 		}
 	}
 

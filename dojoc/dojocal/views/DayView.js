@@ -63,7 +63,7 @@ dojo.declare('dojoc.dojocal.views.DayView', dojoc.dojocal.views.MultiDayViewBase
 				var isFirstDay = eWidget._isFirstDay = dojo.date.compare(date, startDate, 'date') == 0,
 					isLastDay = eWidget._isLastDay = dojo.date.compare(date, endDate, 'date') == 0,
 					isIntraDay = !isFirstDay && !isLastDay,
-					classes = ['dojocalMultiday'];
+					classes = ['dojocalAllDay dojocalMultiday'];
 				// add appropriate classes
 				if (isFirstDay)
 					classes.push('firstDay');
@@ -77,12 +77,6 @@ dojo.declare('dojoc.dojocal.views.DayView', dojoc.dojocal.views.MultiDayViewBase
 		}
 		else
 			this._addEventToDayLayout(eWidget, this._dayLayouts[0]);
-	},
-
-	_addEventToAllDayLayout: function (eWidget, layoutEl) {
-		// skip the dnd stuff since these can't be moved effectively when we're only showing one day
-		layoutEl.appendChild(eWidget.domNode);
-		dojo.publish('dojoc.dojocal.' + this.gridId + '.eventAdded', [eWidget, this]);
 	},
 
 	_checkDayHighlighting: function () {

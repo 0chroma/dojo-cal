@@ -49,26 +49,8 @@ dojo.declare('dojoc.dojocal.Event', [dijit._Widget, dijit._Templated, dojoc.dojo
 
 	setSelected: function (selected) {
 		this.inherited(arguments);
-		this._setCssState('selected', this.selected);
-		if (selected) {
-			// adjust text color so it's more readable (now that the opacity was increased)
-			var fgColor = new dojo.Color(this.fontColor),
-				bgColor = new dojo.Color(this.color);
-			// check if our colors are "dark on dark" or "light on light"
-			// TODO? find a formula that satisfies more color combinations
-			var isTooClose = Math.abs(fgColor.r - bgColor.r) < 96 || Math.abs(fgColor.g - bgColor.g) < 96 || Math.abs(fgColor.b - bgColor.b) < 96;
-			if (isTooClose) {
-				// lighten or darken our text
-				// TODO: something looks b0rked here:
-				var colorDir = (fgColor.r - bgColor.r > 0) + Math.abs(fgColor.g - bgColor.g > 0) + Math.abs(fgColor.b - bgColor.b > 0),
-				newColor = new dojo.Color();
-				dojo.blendColors(fgColor, new dojo.Color(colorDir > 0 ? 'white' : 'black'), 0.75, newColor);
-				this._setFontColor(newColor.toCss());
-			}
-		}
-		else {
-			this._setFontColor(this.fontColor);
-		}
+		this._setHighlighted(this.selected, 'selected');
+		this._publishToPeers('peerHighlighted', [this.selected, 'selected']);
 	},
 
 	setEditing: function (editing) {
@@ -117,11 +99,60 @@ dojo.declare('dojoc.dojocal.Event', [dijit._Widget, dijit._Templated, dojoc.dojo
 	startup: function () {
 		this.inherited(arguments);
 		this._updateTimeLabel();
+		this.connect(this.domNode, 'mouseover', '_onHover');
+		this.connect(this.domNode, 'mouseout', '_onHover');
+		dojo.subscribe('dojoc.dojocal.' + this.getUid() + '.peerHighlighted', this, '_peerHighlighted');
 	},
 
 	/***** private properties and methods *****/
 
 	_timeLabel: '',
+
+	_onHover: function (e) {
+		this.hovered = e.type == 'mouseover';
+		this._setHighlighted(this.hovered, 'hovered');
+		this._publishToPeers('peerHighlighted', [this.hovered, 'hovered']);
+	},
+
+	_peerHighlighted: function (/* Boolean */ highlighted, /* String */ highlightType) {
+		// Note: this relies on highlightType == property name
+		if (this[highlightType] != highlighted) {
+			this[highlightType] = !!highlighted;
+			this._setHighlighted(highlighted, highlightType);
+		}
+	},
+
+	_publishToPeers: function (/* String */ type, args) {
+		// this check ensures that we don't enter into an infinite loop since we subscribe to our own publish!
+		if (!this._publishingType || this._publishingType != type) {
+			this._publishingType = type;
+			dojo.publish('dojoc.dojocal.' + this.getUid() + '.' + type, args);
+			delete this._publishingType;
+		}
+	},
+
+	_setHighlighted: function (/* Boolean */ highlighted, /* String */ highlightType) {
+		this._setCssState(highlightType, highlighted);
+		if (this.selected || this.hovered) {
+			// adjust text color so it's more readable (now that the opacity was increased)
+			var fgColor = new dojo.Color(this.fontColor),
+				bgColor = new dojo.Color(this.color);
+			// check if our colors are "dark on dark" or "light on light"
+			// TODO? find a formula that satisfies more color combinations
+			var isTooClose = Math.abs(fgColor.r - bgColor.r) < 96 || Math.abs(fgColor.g - bgColor.g) < 96 || Math.abs(fgColor.b - bgColor.b) < 96;
+			if (isTooClose) {
+				// lighten or darken our text
+				// TODO: something looks b0rked here:
+				var colorDir = (fgColor.r - bgColor.r > 0) + Math.abs(fgColor.g - bgColor.g > 0) + Math.abs(fgColor.b - bgColor.b > 0),
+				newColor = new dojo.Color();
+				dojo.blendColors(fgColor, new dojo.Color(colorDir > 0 ? 'white' : 'black'), 0.75, newColor);
+				this._setFontColor(newColor.toCss());
+			}
+		}
+		else {
+			this._setFontColor(this.fontColor);
+		}
+	},
 
 	_setColor: function (/* String */ color) {
 		// until we're not supporting the older, non-CSS3 browsers, the opaque border and semi-opaque background cannot be set on the same node

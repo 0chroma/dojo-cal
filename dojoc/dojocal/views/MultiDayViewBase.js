@@ -215,7 +215,7 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 		this.daysColumnTimeMarker.style.top = minutes / djc.minutesPerDay * 100 + '%';
 	},
 
-	_addEvent: function (eWidget) {
+	_addEvent: function (eWidget, isInitialRender) {
 		// TODO: put common functionality here (see subclasses for now)
 	},
 
@@ -272,6 +272,32 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 		dojo.forEach(this._getAllEventsInNode(viewEl, calendarId, eventId), function (e) {
 			e.destroy();
 		});
+	},
+
+	/* handy day-of-week translators */
+
+	// override these for multi-week views that arent' 7-days wide!
+
+	_dayOfWeekToCol: function (dayOfWeek) {
+		return (dayOfWeek - this.weekStartsOn) % 7;
+	},
+
+	_colToDayOfWeek: function (colNum) {
+		return (colNum + this.weekStartsOn) % 7;
+	},
+
+	_nodeToCol: function (node) {
+		var layout = this._nodeToLayout(node);
+		return parseInt(dojo.attr(layout, 'day'));
+	},
+
+	_nodeToDate: function (node) {
+		var col = this._nodeToCol(node);
+		return dojo.date.add(this._startDate, 'day', col);
+	},
+
+	_nodeToLayout: function (node) {
+		return djc.getAncestorByAttrName(node, 'day');
 	},
 
 	/* common event handlers */

@@ -169,22 +169,32 @@ dojo.declare('dojoc.dojocal._base.EventPositioner', [], {
 				mruWidget, // most recently used widget
 				mruRow; // most recently used row
 
-			// sort events by size (multi-day events at the top) and by unique ids
-			// this helps detect and process duplicates
+			// sort events by size (multi-day events at the top) and then by time (for the month view)
+			// and by unique ids which helps detect and process duplicates (below)
 			eventWidgets = eventWidgets.sort(function (a, b) {
-				return (b.getDuration() - a.getDuration()) || (b.calendarId > a.calendarId) || (b.data.uid > a.data.uid) ;
+				var test = b.isAllDay() == a.isAllDay() ? 0 : b.isAllDay() ? 1 : -1;
+				if (test == 0) {
+					test = b.getDuration() - a.getDuration();
+					if (test == 0) {
+						test = b.getDateTime() - a.getDateTime();
+						if (test == 0) {
+							test = b.getUid() == a.getUid() ? 0 : b.getUid() < a.getUid() ? 1 : -1;
+						}
+					}
+				}
+				return test;
 			});
 
 			// place events into matrix
 			dojo.forEach(eventWidgets, function (eWidget, i) {
 
-				// is this a duplicates (multi-day events)
+				// is this a duplicate (multi-day events)
 				if (!mruWidget || eWidget.calendarId != mruWidget.calendarId || eWidget.data.uid != mruWidget.data.uid) {
 
 					// get positions of startDate and endDate within daySet
-					// Note: this logic assumes that the event widget is being placed into the correct week! (TODO? fix?)
-					var pStart = Math.min(numDays - 1, Math.max(0, dojo.date.difference(startDate, eWidget.getDateTime(), 'day'))),
-						pEnd = Math.min(numDays - 1, Math.max(0, dojo.date.difference(startDate, eWidget.getEndDateTime(), 'day'))),
+					// Note: this logic assumes that the event widget is being placed into the correct week/month! (TODO? fix?)
+					var pStart = Math.min(numDays - 1, Math.max(0, dojo.date.difference(startDate, djc.dateOnly(eWidget.getDateTime()), 'day'))),
+						pEnd = Math.min(numDays - 1, Math.max(0, dojo.date.difference(startDate, djc.dateOnly(eWidget.getEndDateTime()), 'day'))),
 						row = -1; // row in which to place this event
 
 					// look for a place to put the event
@@ -227,7 +237,7 @@ dojo.declare('dojoc.dojocal._base.EventPositioner', [], {
 				eData.push({widget: eWidget, box: box, newBox: newBox});
 
 			});
-//console.dir(dayMatrix)
+//console.dir(dayMatrix);
 		}
 
 		return eData;

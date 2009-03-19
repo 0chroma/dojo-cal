@@ -114,7 +114,7 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 			delete this._selectedEvent;
 		}
 		if (eWidget) {
-			eWidget.setSelected(selected);
+			eWidget.setSelected(true);
 			this._selectedEvent = eWidget;
 		}
 	},
@@ -137,30 +137,6 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 	},
 
 	/* handy day-of-week translators */
-
-	// override these for multi-week views / views that arent' 7-days wide!
-
-	_dayOfWeekToCol: function (dayOfWeek) {
-		return (dayOfWeek - this.weekStartsOn) % 7;
-	},
-
-	_colToDayOfWeek: function (colNum) {
-		return (colNum + this.weekStartsOn) % 7;
-	},
-
-	_nodeToCol: function (node) {
-		var layout = this._nodeToLayout(node);
-		return parseInt(dojo.attr(layout, 'day'));
-	},
-
-	_nodeToDate: function (node) {
-		var col = this._nodeToCol(node);
-		return dojo.date.add(this._startDate, 'day', col);
-	},
-
-	_nodeToLayout: function (node) {
-		return djc.getAncestorByAttrName(node, 'day');
-	},
 
 	_timeOfDayInMinutes: function (date) {
 		return date.getHours() * 60 + date.getMinutes() + Math.round(date.getSeconds() / 60);
