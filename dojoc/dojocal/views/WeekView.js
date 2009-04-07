@@ -34,7 +34,7 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 		this.inherited(arguments);
 		// calc week start date
 		this._startDate = djc.getWeekStartDate(date, this.weekStartsOn);
-		this._endDate = dojo.date.add(this._startDate, 'day', 6);
+		this._endDate = dojo.date.add(this._startDate, 'day', 7);
 		// if the week changed
 		if (!prevWeekStartDate || dojo.date.compare(prevWeekStartDate, this._startDate) != 0) {
 			this._setHeaderDates();
@@ -110,7 +110,7 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 					pos++;
 					date = dojo.date.add(date, 'day', 1);
 				}
-				while (date <= weekLast);
+				while (date < weekLast);
 				if (visCount > 0)
 					showTitle(currWidget, visCount);
 			}
@@ -126,6 +126,11 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 			pos = this._dayOfWeekToCol(eWidget.getDateTime().getDay());
 			this._addEventToDayLayout(eWidget, this._dayLayouts[pos]);
 		}
+	},
+
+	_updateEvent: function (eWidget) {
+		// updates the view-specific visual representation of the event based on new data (e.g. time of day)
+		// TODO: move event to correct layout / time of day
 	}
 
 

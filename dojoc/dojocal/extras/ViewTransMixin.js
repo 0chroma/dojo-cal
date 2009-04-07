@@ -30,7 +30,7 @@ var djc = dojoc.dojoca;
 */
 dojo.declare('dojoc.dojocal.extras.ViewTransMixin', null, {
 
-	_transitionViews: function (oldView, newView, oldNode, newNode) {
+	xxx_transitionViews: function (oldView, newView, oldNode, newNode) {
 		// TODO: get this working
 		return false;
 		// TODO: month view transitions
@@ -41,6 +41,7 @@ dojo.declare('dojoc.dojocal.extras.ViewTransMixin', null, {
 		// TODO? fadein/out header text via opacity?
 		// motion
 		var isZooming = oldView instanceof djc.views.WeekView,
+			supportsMinWidth = 'minWidth' in newNode.style,
 			dayNode = this.dayViewNode,
 			weekNode = this.weekViewNode,
 			weekdayNode = this._weekDayLayouts[this._weekdayColNum],
@@ -54,7 +55,7 @@ dojo.declare('dojoc.dojocal.extras.ViewTransMixin', null, {
 			eventWidgets = this._getAllEventsInNode(dayNode),
 			motionProps = {
 				node: dayNode,
-				duration: this.animationDuration,
+				duration: this.transitionDuration,
 				properties: {
 					left: {start: isZooming ? colLeft : zoomLeft, end: isZooming ? zoomLeft : colLeft, units: 'px'},
 					width: {start: isZooming ? colWidth: zoomWidth, end: isZooming ? zoomWidth : colWidth, units: '%'}
@@ -74,10 +75,10 @@ dojo.declare('dojoc.dojocal.extras.ViewTransMixin', null, {
 					motionProps.node.style.left = '';
 					// remove styling on event widgets
 					dojo.forEach(eventWidgets, function (event) {
-						if (dojo.isIE != 6) {
+						if (supportsMinWidth) {
 							event.domNode.style.minWidth = '';
 						}
-						else if (dojo.isIE == 6 && event._layoutPrevWidth) {
+						else if (event._layoutPrevWidth) {
 							// especially remove IE 6 css expressions for performance reasons!
 							event.domNode.style.width = event._layoutPrevWidth;
 							delete event._layoutPrevWidth;
@@ -92,7 +93,7 @@ dojo.declare('dojoc.dojocal.extras.ViewTransMixin', null, {
 				// convert from % to px
 				var minWidth = weekdayNode.offsetWidth * event._layoutBox.w / 100;
 				event.domNode.style.minWidth = minWidth + 'px';
-				if (dojo.isIE == 6) {
+				if (!supportsMinWidth) {
 					// save current width for restoring later
 					event._layoutPrevWidth = event.domNode.style.width;
 					// fake minWidth for IE 6

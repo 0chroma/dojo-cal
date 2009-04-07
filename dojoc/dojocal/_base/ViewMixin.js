@@ -63,9 +63,9 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 	// number of minutes to scroll from midnight when displaying calendar.  use 450 for 7:30 AM, 780 for 1:00 PM
 	initialStartTime: 480,
 
-	// animationDuration: Number
+	// transitionDuration: Number
 	// the duration of any animations used by the grid
-	animationDuration: 250,
+	transitionDuration: 250,
 
 	// date: String
 	// set this to the dojocal's initial date (ISO-formatted date string)
@@ -123,7 +123,7 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 
 	// cascadeAttrMap: Array of String
 	// these attribute/property names will be copied from the grid to this view
-	cascadeAttrMap: {date: '', minutesPerGridLine: '', userChangeResolution: '', initialStartTime: '', animationDuration: '', weekStartsOn: '', showWeekends: '', defaultEventClass: '', dndMode: '', dndDetectDistance: '', dndFluidSnapThreshold: '', splitterMinHeight: '', splitterMaxHeight: '', splitterIsCollapsible: ''},
+	cascadeAttrMap: {date: '', minutesPerGridLine: '', userChangeResolution: '', initialStartTime: '', transitionDuration: '', weekStartsOn: '', showWeekends: '', defaultEventClass: '', dndMode: '', dndDetectDistance: '', dndFluidSnapThreshold: '', splitterMinHeight: '', splitterMaxHeight: '', splitterIsCollapsible: ''},
 
 	constructor: function () {
 		this.attributeMap = dojo.mixin(this.attributeMap, this.cascadeAttrMap);
@@ -131,7 +131,8 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 
 	setDate: function (/* Date|String? */ date) {
 		// summary: sets the current datetime. use dojoc.dojocal.dateOnly, if applicable.
-		this.date = this._startDate = this._endDate = djc.dateOnly(date);
+		this.date = this._startDate = djc.dateOnly(date);
+		this._endDate = dojo.date.add(this.date, 'day', 1);
 	},
 
 	getStartDate: function () {
@@ -141,6 +142,8 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 
 	getEndDate: function () {
 		// summary: returns the latest date at which events show
+		// getEndDate points just past the actual end date of the view, so
+		// always test getEndDate by using < rather than <= 
 		return this._endDate;
 	},
 
@@ -149,6 +152,7 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 		// minuteOfDay: Number
 		//   the minute of the day. e.g. 450 (min) == 7.5 (hr) * 60 == 7:30 am
 		// TODO: allow user to pass "auto" to try to scroll as many imminent events into view???
+		// TODO: FIXME: I don't think this belongs here
 		dojo.publish('dojoc.dojocal.' + this.widgetid + '.setStartOfDay', [minuteOfDay]);
 	},
 
@@ -157,7 +161,7 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 		//   (see setStartOfDay)
 		// exact: set to true to return as precise a result as possible, omit or set to false to return the value
 		//   rounded to the nearest minute
-		return null; // unsupported
+		return null; // unsupported in mixin
 	},
 
 	isEventViewable: function (/* UserEvent */ event) {

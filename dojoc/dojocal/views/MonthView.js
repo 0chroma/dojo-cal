@@ -53,8 +53,8 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 		// calc month start and end dates (end = next month's start - 1)
 		this._weekStartDate = djc.getWeekStartDate(date, this.weekStartsOn);
 		this._startDate = djc.getMonthStartDate(date, this.weekStartsOn);
-		this._endDate = dojo.date.add(djc.getMonthStartDate(dojo.date.add(date, 'month', 1), this.weekStartsOn), 'day', -1);
-
+		this._endDate = djc.getMonthEndDate(date, this.weekStartsOn);
+console.log(this._endDate, this.declaredClass);
 		// if month changed
 		// Note: don't change the month view if we're currently viewing it and the new date is still
 		// visible but in a different month (this._startDate should not change in this case)
@@ -88,18 +88,18 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 	_addEvent: function (eWidget) {
 		// TODO: share this whole method with WeekView and other multi-day views
 		function showTitle (widget, size) {
-			// expand title to span all pseudo-widgets
-			// we use the last widget since it's topmost in the z-order (we'd have to change the
-			// z-index of the TDs to fix this)
+			// expand title to span all pseudo-widgets. we use the last widget since it's topmost in the z-order
+			// (we'd have to change the z-index of the TDs to fix this)
 			dojo.style(widget.domNode, {
 				overflow: 'visible', // allows text to spread across cloned events
-				zIndex: '10 !important' // overrides hovered/selected of other events which covers title text
+				zIndex: '10' // overrides hovered/selected classes of other events which would otherwise cover title text
 			});
 			dojo.style(widget.titleNode, {
 				visibility: 'visible',
+				overflow: 'hidden', // this is important to keep the text from oveflowing since we're letting the domNode overflow
 				width: size * 100 + '%', // span all sister-widgets in this row
 				left: -(size - 1) * 100 + '%', // position at first sister-widget
-				marginLeft: -(size - 2) +'px' // fine-tuning due to table cell borders / event padding. TODO: get the padding from computed style
+				marginLeft: -(size - 1) +'px' // fine-tuning due to table cell borders / event padding. TODO: get the padding from computed style
 			});
 		}
 		if (eWidget.isAllDay()) {
@@ -127,7 +127,6 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 						currWidget.startup();
 						node = currWidget.domNode;
 						visCount++;
-//console.log('pos = ', pos);
 					}
 					// if we hit the end of the week, show the title for the widgets in this week
 					if ((pos + 1) % 7 == 0) {
@@ -154,7 +153,9 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 					date = dojo.date.add(date, 'day', 1);
 				}
 				while (date <= dtLast);
-				showTitle(currWidget, visCount);
+				// if we've hit the end of the event's range (0 means we just executed showtitle above, so don't repeat)
+				if (visCount > 0)
+					showTitle(currWidget, visCount);
 			}
 			// otherwise, single-day event
 			else {
@@ -198,7 +199,7 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 		}
 	},
 
-	_postEventChange: function () {
+	_afterEventChange: function () {
 		// this must be run after adding or removing one or more events
 		this._checkEventOverlapping(this.monthBodyNode, this._startDate);
 	},
@@ -238,6 +239,7 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 		});
 		// we're done with it
 		rowTemplate.parentNode.removeChild(rowTemplate);
+		this._cellLayouts = dojo.query('.dojocalDayColumnLayout', this.monthTableNode);
 	},
 
 	_setMonthCellHeaderDates: function () {
@@ -277,24 +279,15 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 
 	_checkTodayHighlighting: function () {
 //		// TODO: this needs to not manipulate strings (addClass/removeClass) unless they need to be changed!
-//		var today = djc.dateOnly(new Date()),
-//			todayOffset = dojo.date.difference(this._startDate, today, 'day'),
-//			col = this._dayOfWeekToCol(today.getDay());
-//		if (col != this._todayWeekdayColNum && this._todayWeekdayColNum != undefined) {
-//			dojo.removeClass(this._dayLayouts[this._todayWeekdayColNum], 'dojocalDay-today');
-//			dojo.removeClass(this._allDayLayouts[this._todayWeekdayColNum], 'dojocalDay-today');
-//			// hide minute marker
-//			this.daysColumnTimeMarker.style.display = 'none';
-//		}
-//		if (todayOffset >= 0 && todayOffset < this.dayCount) {
-//			this._todayWeekdayColNum = col;
-//			dojo.addClass(this._dayLayouts[this._todayWeekdayColNum], 'dojocalDay-today');
-//			dojo.addClass(this._allDayLayouts[this._todayWeekdayColNum], 'dojocalDay-today');
-//			// move and show minute marker
-//			if (this.daysColumnTimeMarker.parentNode != this._dayLayouts[this._todayWeekdayColNum])
-//				this._dayLayouts[this._todayWeekdayColNum].appendChild(this.daysColumnTimeMarker);
-//			this.daysColumnTimeMarker.style.display = '';
-//		}
+		var today = djc.dateOnly(new Date()),
+			cell = this._cellLayouts[this._dateToCellPos(today)];
+		if (this._todayLayout && cell != this._todayLayout) {
+			dojo.removeClass(this._todayLayout, 'dojocalDay-today');
+		}
+		this._todayLayout = cell;
+		if (cell) {
+			dojo.addClass(this._todayLayout, 'dojocalDay-today');
+		}
 	},
 
 	_showLeaderColumn: function (show) {

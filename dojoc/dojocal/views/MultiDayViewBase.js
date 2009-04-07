@@ -253,7 +253,7 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 	 */
 	_addEventToDayLayout: function (eWidget, layoutEl) {
 		// get time of day rounded to minutes
-		var startMinutes = this._timeOfDayInMinutes(eWidget.data._startDateTime),
+		var startMinutes = this._timeOfDayInMinutes(eWidget.data.startDateTime),
 			durationMinutes = Math.round(eWidget.data.duration / 60);
 		// convert to % of a day
 		dojo.style(eWidget.domNode, 'top', startMinutes / djc.minutesPerDay * 100 + '%');
@@ -302,8 +302,11 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 
 	/* common event handlers */
 
-	_postEventChange: function () {
-		// this must be run after adding or removing one or more events
+	_onEventChanged: function (eWidget, oldProps) {
+		dojo.publish(djc.createDojoCalTopic(this.gridId, 'eventUpdated'), [this, eventWidget, oldProps]);
+	},
+
+	_afterEventChange: function () {
 		dojo.forEach(this._dayLayouts, function (layout) {
 			this._checkEventOverlapping(layout, this.isExpanded);
 		}, this);
@@ -532,9 +535,9 @@ console.log('_onAllDayEventDragStart')
 		var newDragData = this._getDraggedEventCurrentData(eventWidget);
 		var oldDateTime = eventWidget.getDateTime();
 		console.debug("OLD EVENT: " + oldDateTime + " | NEW EVENT: " + newDragData.dateTime);
-		if (oldDateTime == newDragData.dateTime){
-			return; // TODO: Get date comparison working here
-		}
+//		if (oldDateTime == newDragData.dateTime){
+//			return; // TODO: Get date comparison working here
+//		}
 		eventWidget.setDateTime(newDragData.dateTime);
 		if (eventWidget.isAllDay()) {
 			this._addEventToAllDayLayout(eventWidget, newDragData.col);
@@ -549,9 +552,7 @@ console.log('_onAllDayEventDragStart')
 		this._selectEventWidget(eventWidget);
 		delete eventWidget._dndData;
 //console.log('dnd data deleted')
-		// TODO: publish the event change
-		//eventWidget.onDataChange(eventWidget, {changeType: "move"}); // TODO: Create object to encap. event change data
-		dojo.publish('dojoc.dojocal.' + this.gridId + '.eventUpdated', [eventWidget, this]);
+		this._onEventChanged(eventWidget, {startDate: oldDateTime});
 	},
 
 	_onEventDragging: function (eventWidget, /* dojo.dnd.Mover */ mover, /* Object */ leftTop) {

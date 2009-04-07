@@ -85,7 +85,7 @@ dojo.mixin(dojoc.dojocal, {
 		//     dojocalScrollbarPaddingV - has padding on the bottom equal to the scrollbar width
 		//     dojocalScrollbarMarginH - has margin on the right equal to the scrollbar width
 		//     dojocalScrollbarMarginV - has margin on the bottom equal to the scrollbar width
-		// TODO: fix for RTL direction / locales
+		// TODO: fix for RTL direction / locales???
 		var ss = this.getDojocalStylesheet(),
 			sbw = this.getScrollbarWidth() + 'px',
 			ruleDefs = [
@@ -98,7 +98,10 @@ dojo.mixin(dojoc.dojocal, {
 			dojo.forEach(ruleDefs, ss.insertRule, ss);
 		}
 		else { // ie
-			dojo.forEach(ruleDefs, function (def) { var p = def.indexOf('{'); ss.addRule(def.substr(0, p), def.substr(p)); });
+			dojo.forEach(ruleDefs, function (def) {
+				var p = def.indexOf('{');
+				ss.addRule(def.substr(0, p), def.substring(p + 1, def.indexOf('}')));
+			});
 		}
 		return ss;
 	},
@@ -156,7 +159,7 @@ dojo.mixin(dojoc.dojocal, {
 			try {
 				testEl.style.cssText = 'width:100px;height:100px;overflow:scroll;bottom:100%;right:100%;position:absolute;visibility:hidden;'
 				dojo.body().appendChild(testEl);
-				this._scrollbarWidth = testEl.offsetWidth - (dojo.isIE ? testEl.clientWidth : testEl.scrollWidth);
+				this._scrollbarWidth = testEl.offsetWidth - Math.max(testEl.clientWidth, testEl.scrollWidth);
 				dojo.body().removeChild(testEl);
 			}
 			catch (ex) {
@@ -167,6 +170,7 @@ dojo.mixin(dojoc.dojocal, {
 	},
 
 	createStylesheet: function (cssText) {
+		// TODO: why not use dojo's createstylesheet?
 		var doc = dojo.doc,
 			node = doc.createElement('style');
 		// add to head tag (or to body tag, if head is missing)
@@ -224,15 +228,38 @@ dojo.mixin(dojoc.dojocal, {
 
 	getMonthStartDate: function (/* Date */ date, /* Number */ weekStartsOn) {
 		// summary: returns the date for the start of the month of the given date
-		//  Note: this is not necessarily the 1st of the month!  It's the first day in the grid which
+		//  Note: this is not necessarily the 1st of the month!  It's the first day in the **grid** which
 		//  could be in the previous month.
+
+		// first, grab the beginning of the week
 		var wStart = this.getWeekStartDate(date, weekStartsOn);
-		// if current week started in the prev month (then we got it already)
+		// if the week started in the prev month (then we got it already)
 		if (wStart.getMonth() != date.getMonth())
 			return wStart;
 		// go back a few weeks (approx. day-of-month / 7) to get the right one
 		else
 			return this.dateOnly(dojo.date.add(wStart, 'day', -Math.ceil((wStart.getDate() - 1) / 7) * 7));
+	},
+
+	getMonthEndDate: function (/* Date */ date, /* Number */ weekStartsOn) {
+		// summary: returns the date for the end of the month of the given date
+		// Note: the end date is always just greater than the actual end
+		//  Note: this is not necessarily the 1st of the next month!  It's the first day just off the **grid**
+		// which could be well into the next month.
+
+		// first get one week into next month
+		var w2ndWeek = dojo.date.add(dojo.date.add(date, 'day', -date.getDate() + 7), 'month', 1);
+		// return start of that week
+		return this.getWeekStartDate(w2ndWeek, weekStartsOn);
+	},
+
+	createDojoCalTopic: function (topic, id) {
+		return ['dojoc.dojocal', id, topic].join('.');
+	},
+
+	undelegate: function (/* Object */ obj) {
+		// summary: reverses dojo.delegate
+		return obj.constructor.prototype;
 	}
 
 });
@@ -241,12 +268,19 @@ dojo.mixin(dojoc.dojocal, {
 dojo.addOnLoad(dojo.hitch(dojoc.dojocal, dojoc.dojocal.createScrollbarStyles));
 
 //dojoc.dojocal.UserEvent = {
-//	uid: '', // unique id
-//	startDateTime: '', // iso-formatted date-time string
-//	duration: 0, // duration in seconds (TODO: ????)
-//	summary: '', // text summary / title
+//	uid: '', // unique id (required)
+//	calendarId: '', // id for calendar to which this event belongs
+//	startDateTime: '', // js Date object (required)
+//	duration: 0, // duration in seconds (required)
+//	summary: '', // text summary / title  (required)
 //	description: '', // a longer description
 //	isAllDay: false,
+//	options: { // optional set of options
+//		eventClass: '', // String
+//		calendarDef: null, // dojoc.dojocal.CalendarDef, auto-added by calendarId, if not supplied here
+//		cssStyles: '', // can be used to override styles on the top node, such as font styles
+//		cssClasses: '' // can be used for ultimate stlying control of the event widget
+//	},
 //	recurrence: {
 //		// TODO: finish recurrence (exceptions, etc.)
 //		frequency: '', // TBD
@@ -254,101 +288,127 @@ dojo.addOnLoad(dojo.hitch(dojoc.dojocal, dojoc.dojocal.createScrollbarStyles));
 //	}
 //};
 
-//dojoc.dojocal.EventOptions = {
-//	eventClass: '', // the Javascript class to create the event widget
-//	cssStyles: '', // can be used to override styles on the top node, such as font styles
-//	cssClasses: '' // can be used for ultimate stlying control of the event widget
-//};
 
 /**
- * dojoc.dojocal.UserCalendar is the collection of event items organized into a user calendar.
+ * dojoc.dojocal.CalendarDef is the collection of event items organized into a user calendar.
  */
-dojo.declare('dojoc.dojocal.UserCalendar', null, {
+dojo.declare('dojoc.dojocal.CalendarDef', null, {
+	// summary:
+	//  CalendarDef contains a description of the visual aspects of one of a user's calendars
+	//  of events
 
+	// id: String
+	// must be supplied and must be unique across calendars
 	id: '',
+
+	// color: String
+	// set this to a valid css color for the background of all events in this calendar
 	color: '#33ff00',
+
+	// fontColor: String
+	// set this to a valid css color for the text of all events in this calendar
 	fontColor: '#007700',
-	defaultEventClass: '', // widget class: if specified, overrides class specified by view
 
-	onChangeEvent: function (/* dojoc.dojocal.UserEvent | Array */ event, /* String */ changeType) {},
-
-	setColor: function (/* String */ color)  {
-		this.color = color;
-		/* raise topic to change color of event widgets? */
-	},
-
-	addEvents: function (/* Array of dojoc.dojocal.UserEvent */ events, /* dojoc.dojocal.EventOptions? */ options) {
-		dojo.forEach(events, function (event) {
-			this._addEvent(event, options);
-		}, this);
-		this.onChangeEvent(events, 'add');
-	},
-
-	addEvent: function (/* dojoc.dojocal.UserEvent */ event, /* dojoc.dojocal.EventOptions? */ options) {
-		this._addEvent(event, options);
-		this.onChangeEvent(event, 'add');
-	},
-
-	removeEvent: function (/* dojoc.dojocal.UserEvent */ event) {
-		var idx = this._findEventPos(event);
-		if (idx >= 0) {
-			// TODO: allow cancellation of delete
-			this.onChangeEvent(event, 'remove');
-			this._events.splice(idx, 1);
-		}
-	},
-
-	getEvents: function (/* Date? */ startDate, /* Date? */ endDate) {
-		// summary: gets all dates that cross the given date range (or all events if no range is given)
-		//   startDate: all events must end on or after this date (whole date: not time is considered)
-		//   endDate: all events must start on or before this date (whole date: not time is considered)
-		//   Note: startDate and endDate
-		// TODO: recurrence?
-		// add a day to endDate so that we don't miss events that start any time on the last day
-		endDate = dojo.date.add(endDate, 'day', 1);
-		if (startDate && endDate) {
-			return dojo.filter(this._events, function (e) {
-				var end = dojo.date.add(e.data._startDateTime, 'second', e.data.duration); // TODO? assumes seconds!!!!!
-				return e.data._startDateTime < endDate && end >= startDate;
-			});
-		}
-		else
-			return this._events;
-	},
+	// defaultEventClass: String
+	// set this to the dijit class that should be used to create this event's widget
+	// if specified, overrides class specified by view
+	defaultEventClass: 'dojoc.dojocal.Event',
 
 	constructor: function (params) {
-		if (params)
-			dojo.mixin(this, params);
-		this._events = [];
-		this.id = this.id || dijit.getUniqueId(this.declaredClass);
-	},
-
-	_addEvent: function (/* dojoc.dojocal.UserEvent */ event, /* dojoc.dojocal.EventOptions? */ options) {
-		options = options || {};
-		options = dojo.mixin({
-			eventClass: this.defaultEventClass,
-			cssClasses: '',
-			color: this.color,
-			fontColor: this.fontColor
-		}, options);
-		event.calendarId = this.id;
-		event._startDateTime = dojo.date.stamp.fromISOString(event.startDateTime);
-		event.guid = event.guid || dijit.getUniqueId(this.declaredClass + 'Event');
-		this._events.push({data: event, options: options});
-	},
-
-	_findEventPos: function (event) {
-		// TODO: search by guids????
-		var found = -1;
-		dojo.some(this._events, function (obj, pos) {
-			if (obj.data == event)
-				found = pos;
-			return found >= 0;
-		});
-		return found;
+		dojo.mixin(this, params);
 	}
 
 });
+
+///**
+// * dojoc.dojocal.UserCalendar is the collection of event items organized into a user calendar.
+// */
+//dojo.declare('dojoc.dojocal.UserCalendar', null, {
+//
+//	id: '',
+//	color: '#33ff00',
+//	fontColor: '#007700',
+//	defaultEventClass: '', // widget class: if specified, overrides class specified by view
+//
+//	onChangeEvent: function (/* dojoc.dojocal.UserEvent | Array */ event, /* String */ changeType) {},
+//
+//	setColor: function (/* String */ color)  {
+//		this.color = color;
+//		/* raise topic to change color of event widgets? */
+//	},
+//
+//	addEvents: function (/* Array of dojoc.dojocal.UserEvent */ events, /* dojoc.dojocal.EventOptions? */ options) {
+//		dojo.forEach(events, function (event) {
+//			this._addEvent(event, options);
+//		}, this);
+//		this.onChangeEvent(events, 'add');
+//	},
+//
+//	addEvent: function (/* dojoc.dojocal.UserEvent */ event, /* dojoc.dojocal.EventOptions? */ options) {
+//		this._addEvent(event, options);
+//		this.onChangeEvent(event, 'add');
+//	},
+//
+//	removeEvent: function (/* dojoc.dojocal.UserEvent */ event) {
+//		var idx = this._findEventPos(event);
+//		if (idx >= 0) {
+//			// TODO: allow cancellation of delete
+//			this.onChangeEvent(event, 'remove');
+//			this._events.splice(idx, 1);
+//		}
+//	},
+//
+//	getEvents: function (/* Date? */ startDate, /* Date? */ endDate) {
+//		// summary: gets all dates that cross the given date range (or all events if no range is given)
+//		//   startDate: all events must end on or after this date (whole date: not time is considered)
+//		//   endDate: all events must start on or before this date (whole date: not time is considered)
+//		//   Note: startDate and endDate
+//		// TODO: recurrence?
+//		// add a day to endDate so that we don't miss events that start any time on the last day
+//		endDate = dojo.date.add(endDate, 'day', 1);
+//		if (startDate && endDate) {
+//			return dojo.filter(this._events, function (e) {
+//				var end = dojo.date.add(e.data.startDateTime, 'second', e.data.duration); // TODO? assumes seconds!!!!!
+//				return e.data.startDateTime < endDate && end >= startDate;
+//			});
+//		}
+//		else
+//			return this._events;
+//	},
+//
+//	constructor: function (params) {
+//		dojo.deprecated('dojoc.dojocal.UserCalendar: this is being removed asap. do not use.');
+//		if (params)
+//			dojo.mixin(this, params);
+//		this._events = [];
+//		this.id = this.id || dijit.getUniqueId(this.declaredClass);
+//	},
+//
+//	_addEvent: function (/* dojoc.dojocal.UserEvent */ event, /* dojoc.dojocal.EventOptions? */ options) {
+//		options = options || {};
+//		options = dojo.mixin({
+//			eventClass: this.defaultEventClass,
+//			cssClasses: '',
+//			color: this.color,
+//			fontColor: this.fontColor
+//		}, options);
+//		event.calendarId = this.id;
+//		event.guid = event.guid || dijit.getUniqueId(this.declaredClass + 'Event');
+//		this._events.push({data: event, options: options});
+//	},
+//
+//	_findEventPos: function (event) {
+//		// TODO: search by guids????
+//		var found = -1;
+//		dojo.some(this._events, function (obj, pos) {
+//			if (obj.data == event)
+//				found = pos;
+//			return found >= 0;
+//		});
+//		return found;
+//	}
+//
+//});
 
 
 

@@ -13,7 +13,7 @@ dojo.require('dojoc.dojocal._base.ViewMixin');
 var djc = dojoc.dojocal;
 
 /**
- * dojoc.dojocal.views.MultiDayViewBase
+ * dojoc.dojocal._base.ViewBase
  */
 dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base.ViewMixin], {
 
@@ -21,32 +21,33 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 
 	eventPositionerClass: 'dojoc.dojocal._base.EventPositioner',
 
-	addEvent: function (/* dojoc.dojocal.UserEvent */ e, calendar) {
+	addEvent: function (/* dojoc.dojocal.UserEvent */ e) {
 		this.inherited(arguments);
-		if (e.options)
-			e.options.eventClass = e.options.eventClass || this.eventClass;
-		var w = this._createEventWidget(e, calendar);
+//		if (e.options)
+//			e.options.eventClass = e.options.eventClass || this.eventClass;
+		var w = this._createEventWidget(e);
 		this._addEvent(w);
 		w.startup();
-		this._postEventChange();
+		this._afterEventChange();
 	},
 
-	addEvents: function (/* Array of dojoc.dojocal.UserEvent */ events, calendar) {
+	addEvents: function (/* Array of dojoc.dojocal.UserEvent */ events) {
+		// TODO: remove calDef param
 		var _this = this;
 		dojo.forEach(events, function (e) {
-			if (e.options)
-				e.options.eventClass = e.options.eventClass || _this.eventClass;
-			var w = _this._createEventWidget(e, calendar);
+//			if (e.options)
+//				e.options.eventClass = e.options.eventClass || _this.eventClass;
+			var w = _this._createEventWidget(e);
 			_this._addEvent(w);
 			w.startup();
 		});
-		this._postEventChange();
+		this._afterEventChange();
 	},
 
 	removeEvent: function (/* dojoc.dojocal._base.EventMixin */ event) {
 		// TODO!!!!
 		this.inherited(arguments);
-		this._postEventChange();
+		this._afterEventChange();
 	},
 
 	clearEvents: function () {
@@ -56,6 +57,8 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 
 	postCreate: function () {
 		this.inherited(arguments);
+		// make all text unselectable (event widgets should make their text selectable only when/if they are being edited in-place)
+		dojo.setSelectable(this.domNode, false);
 		// create helper objects
 		var epClassName = this.eventPositionerClass;
 		if (epClassName) {
@@ -63,6 +66,7 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 			var epClass = dojo.getObject(epClassName);
 			this._eventPositioner = new epClass();
 		}
+		dojo.subscribe(djc.createDojoCalTopic('eventUpdated', this.gridId), this, '_onEventDataChange');
 	},
 
 //	startup: function () {
@@ -79,23 +83,24 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 		// TODO: put common functionality here (see subclasses for now)
 	},
 
-	_createEventWidget: function (userEvent, calendar) {
-		var eventClass = userEvent.options.eventClass || calendar.defaultEventClass || this.defaultEventClass,
-			eventConstructor = dojo.getObject(eventClass),
-			eventWidget = this._newEventWidget(eventConstructor, userEvent.data, userEvent.options.color, userEvent.options.fontColor, calendar.id);
-		return eventWidget;
+	_updateEvent: function (eWidget) {
+		// updates the view-specific visual representation of the event based on new data (e.g. time of day)
+		// TODO: put common functionality here (see subclasses for now)
+	},
+
+	_createEventWidget: function (userEvent, calDef) {
+		var opts = userEvent.options,
+			eventConstructor = dojo.getObject(opts.eventClass);
+		return this._newEventWidget(eventConstructor, userEvent, opts.calDef.color, opts.calDef.fontColor, opts.calDef.calendarId);
 	},
 
 	_cloneEventWidget: function (origWidget) {
-		var eventClass = dojo.getObject(origWidget.declaredClass),
-			eventWidget = this._newEventWidget(eventClass, origWidget.data, origWidget.color, origWidget.fontColor, origWidget.calendarId);
-		return eventWidget;
+		var eventConstructor = dojo.getObject(origWidget.declaredClass);
+		return this._newEventWidget(eventConstructor, origWidget.data, origWidget.color, origWidget.fontColor, origWidget.calendarId);
 	},
 
-	_newEventWidget: function (clazz, data, color, fontColor, calendarId) {
-		var eventWidget = new clazz({data: data, color: color, fontColor: fontColor, calendarId: calendarId});
-		// connect events
-		eventWidget.connect(eventWidget, 'onDataChange', dojo.hitch(this, '_onEventDataChange', eventWidget));
+	_newEventWidget: function (eventConstructor, data, color, fontColor, calendarId) {
+		var eventWidget = new eventConstructor({data: data, color: color, fontColor: fontColor, calendarId: calendarId});
 		// add special attributes so we can find this event easily
 		dojo.attr(eventWidget.domNode, 'isDojocalEvent', 'true');
 		dojo.attr(eventWidget.domNode, 'dojocalCalId', eventWidget.calendarId);
@@ -123,9 +128,9 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 		// retrieve all widgets whose nodes we've marked as isDojocalEvent
 		// if the caller specified a particular calendar or event id, then filter further
 		var filter = '[isDojocalEvent]';
-		if (calendarId)
+		if (calendarId >= 0)
 			filter += '[dojocalCalId=' + calendarId + ']';
-		if (eventId)
+		if (eventId >= 0)
 			filter += '[dojocalEventId=' + eventId + ']';
 		return dojo.query(filter, viewEl).map(dijit.byNode);
 	},
@@ -171,11 +176,28 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 		this._selectEventWidget(eventWidget);
 	},
 
-	_onEventDataChange: function (eventWidget) {
-		// TODO:
+	_onEventDataChange: function (view, sourceWidget, oldProps) {
+		// don't proceed if we're the view that initiated the change
+		if (view != this) {
+			this._getAllEventsInNode(this.containerNode, null, sourceWidget.getUid()).forEach(function (eWidget) {
+				for (var p in oldProps) {
+					// set new value in widget by fabricating setter and getter for each property that changed
+					var root = p.substr(0, 1).toUpperCase() + p.substr(1),
+						setter = 'set' + root,
+						getter = 'get' + root,
+						value = getter in sourceWidget ? sourceWidget[getter]() : sourceWidget[p];
+					if (setter in eWidget)
+						eWidget[setter](value);
+					else
+						eWidget[p] = value;
+				}
+				this._updateEvent(eWidget);
+			}, this);
+		}
 	},
 
-	_postEventChange: function () {
+	_afterEventChange: function () {
+		// summary: this should be run after adding, moving, or removing one or more events
 	}
 
 

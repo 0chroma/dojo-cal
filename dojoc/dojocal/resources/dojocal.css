@@ -14,6 +14,12 @@
 	dojocal Calendar Widget
 */
 
+/*
+	TODO: remove browser sniffing and replace with class names that reflect feature support
+	e.g. dojocalSupportsBoxOffsets, dojocalSupportsMinHeight, dojocalSupportsOpacity
+	or better yet: dojocalUseExprForBoxOffsets, dojocalUseExprForMinHeight, dojocalUseAlphaFilter
+*/
+
 .dojocal {
 	position: relative;
 	overflow: hidden;
@@ -150,7 +156,7 @@
 	top: 0;
 }
 
-.dj_ie7.dj_iequirks .dojocalShadow,
+.dj_iequirks .dojocalShadow,
 .dj_ie6 .dojocalShadow {
 	background: ;
 	font-size: 1px; /* Prevents IE 6 from making div too tall */
@@ -175,7 +181,7 @@
 	overflow-y: hidden;
 }
 
-.dj_ie7.dj_iequirks .dojocalContainer,
+.dj_iequirks .dojocalContainer,
 .dj_ie6 .dojocalContainer {
 	height: expression(offsetParent.offsetHeight - offsetTop - 80 + "px"); /* 80px matches height of dojocalFooterWrap */
 	width: 100%;
@@ -183,7 +189,7 @@
 	right: ; /* must clear this out for IE 6 to use the width/height */
 }
 
-.dj_ie7.dj_iequirks .monthView .dojocalContainer,
+.dj_iequirks .monthView .dojocalContainer,
 .dj_ie6 .monthView .dojocalContainer {
 	height: expression(offsetParent.offsetHeight - offsetTop + "px"); /* no need ot reserve room for the splitter */
 }
@@ -224,7 +230,7 @@
 	border-collapse: collapse; /* not all browsers cascade this, so repeat it here */
 }
 
-.dj_ie7.dj_iequirks .dojocalTable,
+.dj_iequirks .dojocalTable,
 .dj_ie6 .dojocalTable {
 	margin-bottom: -4px; /* fixes IE 6's bogus table sizing */
 }
@@ -600,7 +606,7 @@
 	border-radius: 5px;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
-	border: 1px solid #777777;
+	border: 1px solid #555;
 }
 
 .dojocalEventBackground {
@@ -615,11 +621,11 @@
 	opacity: 0.4;
 	-moz-opacity: 0.4;
 	filter: Alpha(opacity=40);
-	background-color: #000;
+	background-color: #777;
 }
 
-.dj_ie7.dj_iequirks .dojocalEventBorder,
-.dj_ie7.dj_iequirks .dojocalEventBackground,
+.dj_iequirks .dojocalEventBorder,
+.dj_iequirks .dojocalEventBackground,
 .dj_ie6 .dojocalEventBorder,
 .dj_ie6 .dojocalEventBackground {
 	right: ;
@@ -653,8 +659,8 @@
 	width: 1.5em;
 	height: 1px;
 	border-style: solid;
-	background-color: #000;
-	border-color: #777777;
+	background-color: #777;
+	border-color: #555;
 	border-width: 1px 0;
 	display: none; /* don't display until hovered */
 }
@@ -736,12 +742,6 @@
 	-webkit-border-bottom-left-radius: 0;
 }
 
-.dojocalMultiday .dojocalEventTitle {
-	white-space: nowrap; /* keeps text from overflowing vertically */
-	margin: 0; /* switch top and left margin for padding */
-	padding: 1px 4px 0 4px;
-}
-
 .dojocalMultiday.firstDay .dojocalEventTitle,
 .dojocalMultiday.intraDay .dojocalEventTitle {
 	/* let the last widget show the title since it is topmost because of the TDs */
@@ -756,6 +756,14 @@
 	right: auto;
 	left: 0;
 	cursor: w-resize;
+}
+
+.dojocalMultiday .dojocalEventTitle {
+	white-space: nowrap; /* keeps text from overflowing vertically */
+	/* switch top and left margin for padding (TODO: this lets us use margin to tweak the pos of the title,
+		but is causing width issues. fix some other way?) */
+	margin: 0;
+	padding: 1px 4px 0 4px;
 }
 
 .dojocalFooter .dojocalEventHandleThumb {

@@ -65,7 +65,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 
 	templatePath: dojo.moduleUrl('dojoc.dojocal', 'resources/Grid.html'),
 
-	store: null,
+//	store: null,
 
 	/* public properties */
 
@@ -109,9 +109,9 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	// number of minutes to scroll from midnight when displaying calendar.  use 450 for 7:30 AM, 780 for 1:00 PM
 	initialStartTime: 480,
 
-	// animationDuration: Number
-	// the duration of any animations used by the grid
-	animationDuration: 250,
+	// transitionDuration: Number
+	// the duration of the transition from view to view
+	transitionDuration: 333,
 
 	// date: String
 	// set this to the dojocal's initial date (ISO-formatted date string)
@@ -171,17 +171,41 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 
 	// onDayClick: Function
 	// connect to this event to capture user clicks on the day cells
+	// return false to cancel default behavior
 	onDayClick: function (e, date, view) {},
+
+	// onDayDblClick: Function
+	// connect to this event to capture user clicks on the day cells
+	// return false to cancel default behavior
+	onDayDblClick: function (e, date, view) {},
 
 	// onHeaderClick: Function
 	// connect to this event to capture user clicks on the header cells
+	// return false to cancel default behavior
 	onHeaderClick: function (e, date, view) {},
 
 	// onHeaderDblClick: Function
 	// connect to this event to capture user double-clicks on the header cells
+	// return false to cancel default behavior
 	onHeaderDblClick: function (e, date, view) {},
 
-	// TODO: add many more public event hooks
+	// onEventClick: Function
+	// connect to this event to capture user clicks on the event widgets
+	// return false to cancel default behavior
+	onEventClick: function (e, date, view) {},
+
+	// onEventDblClick: Function
+	// connect to this event to capture user clicks on the event widgets
+	// return false to cancel default behavior
+	onEventDblClick: function (e, date, view) {},
+
+	onEventAdded: function (eventWidget, view, newData, oldData) {},
+
+	onEventRemoved: function (eventWidget, view, newData, oldData) {},
+
+	onEventUpdated: function (eventWidget, view, newData, oldData) {},
+
+	// TODO: add more public event hooks?
 
 	/***** public methods *****/
 
@@ -195,31 +219,39 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		this._switchView(oldView, this.currentView, true);
 	},
 
-	// TODO: add methods to get, add, and remove views
+	// TODO: add methods to get, add, and remove views?
 
 	setDate: function (/* Date|String? */ date) {
-		// summary: sets the new date for the grid and adjust the views accordingly
+		// summary: sets the new date for the grid and adjusts the views accordingly
+		// for best experience, add events that are applicable to new date, call setDate,
+		// then (optionally) remove old events
+		// TODO: raise an event if we don't have events for the new visible date ranges in the views?
 		if (!date)
 			date = new Date();
 		else if (dojo.isString(date))
 			date = new Date(date);
-
-//		var prevDate = this.date,
-//			prevWeekStartDate = this._weekStartDate,
-//			prevMonthStartDate = this._monthStartDate;
-//		this.date = date = djc.dateOnly(date);
-//
-//		// TODO: remove this block?
-//		// calc start dates for multi-day views (week, month)
-//		this._weekStartDate = dojo.date.add(date, 'day', -date.getDay() + this.weekStartsOn);
-//		if (this._weekStartDate.getMonth() != date.getMonth()) // week started in the prev month
-//			this._monthStartDate = this._weekStartDate;
-//		else
-//			this._monthStartDate = dojo.date.add(this._weekStartDate, 'day', -Math.ceil((this._weekStartDate.getDate() - 1) / 7) * 7);
-
+		this.date = date;
 		// reload all events into views
 		dojo.forEach(this._views, function (view) { view.setDate(date); });
-		this._loadEventsIntoViews(this._calendars);
+//		this._loadEventsIntoViews(this._calendars);
+	},
+
+	getViewableDateRange: function () {
+		// summary: returns the maximum range of dates viewable in the all of the views
+		// description: returns an object with 2 properties: minDate and maxDate
+		// this is useful for determining which events to retrieve after setting the date with setDate()
+		// Note: maxDate's value is just beyond the actual maximum date: e.g.:
+		// minDate <= valid_dates < maxDate
+		var minDate = this.date,
+			maxDate = this.date;
+		dojo.forEach(this._views, function (view) {
+			minDate = Math.min(minDate, view.getStartDate());
+			maxDate = Math.max(maxDate, view.getEndDate());
+		});
+		return {
+			minDate: new Date(minDate),
+			maxDate: new Date(maxDate)
+		}
 	},
 
 	setStartOfDay: function (/* Number */ minuteOfDay) {
@@ -243,37 +275,82 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		return result;
 	},
 
-	addCalendar: function (/* dojoc.dojocal.UserCalendar */ calendar) {
+	addCalendarDef: function (/* dojoc.dojocal.CalendarDef */ calDef) {
 		// summary:
-		// adds a manually-created (non-data-store) calendar of events to the grid
-		// and automatically shows pertinent events in the views
-		this._calendars.push(calendar);
-		this.connect(calendar, 'onChangeEvent', '_onCalendarChangeEvent');
-		var eventClass = calendar.defaultEventClass || this.defaultEventClass;
-		// initialize events
-		dojo.forEach(calendar.getEvents(), function (event, i) {
-			// assign an id if not already assigned (this may not be foolproof)
-			// no uid will break write-capable datastore - mtyson
-			if (!('uid' in event.data))
-				event.data.uid = calendar.id + '_' + i;
-			// use dojo['require'] instead of dojo.require to prevent the build system from trying to bake-in anything
-			// TODO: is the right way to ensure we have this class loaded?
-			dojo['require'](event.options.eventClass || eventClass);
-
-			// not sure if this is how the event was intended to bubble - mtyson
-			//this.connect(event, 'onDataChange', '_onEventDataChange');
-		});
-		this._loadEventsIntoViews([calendar]);
+		// adds a calendar definition to the container
+		// all events added that have a matching calendarId will be styled accordingly
+		// if an existing calDef has the same id, it will be replaced (but events that have already been added
+		// won't be modified)
+		if (!calDef.id)
+			throw 'Cannot add CalendarDef without id';
+		this._calDefs[calDef.id.toString()] = calDef;
 	},
 
-	removeCalendar: function (/* dojoc.dojocal.UserCalendar|String */ calendarOrId) {
+	addEvents: function (/* Array of dojoc.dojocal.UserEvent */ events) {
 		// summary:
-		// manually removes a caendar of events and automatically removes the events
-		// from all of the views
-		var pos = this._findCalendarPos(calendarOrId);
-		this._calendars.splice(pos, 1);
+		// adds events to the calendar views
+		// to add events using a data store, implement the dojoc.dojocal.DataAdapter
+		// TODO: if a calendarDef does not exist, create one with a unique set of colors?
+
+		// prepare events
+		var eventsCopy = [];
+		dojo.forEach(events, function (event, i) {
+			// every event needs a unique id for write-capable data stores
+			if (!('uid' in event))
+				event.uid = dijit.getUniqueId(this.declaredClass + '.event');
+			// figure out what options to use (event takes precendece over view and grid container
+			var options = event.options || {};
+			if (!('calDef' in options))
+				options.calDef = this._calDefs[event.calendarId || '_default'];
+			if (!('eventClass' in options))
+				options.eventClass = options.calDef.defaultEventClass || this.defaultEventClass;
+			// create a write-safe version of the event using dojo.delegate so we don't screw up source
+			var copy = dojo.delegate(event, {options: options});
+			// use dojo['require'] instead of dojo.require to prevent the build system from trying to bake-in something
+			// TODO: is the right way to ensure we have this class loaded?
+			dojo['require'](options.eventClass);
+			// add to our copy
+			eventsCopy.push(copy);
+		}, this);
+		// load events into views
+		this._loadEventsIntoViews(eventsCopy);
+	},
+
+	removeEvents: function (/* Array of dojoc.dojocal.UserEvent */ events) {
 		// TODO: remove event widgets from views
 	},
+
+//	addCalendar: function (/* dojoc.dojocal.UserCalendar */ calendar) {
+//		// summary:
+//		// adds a manually-created (non-data-store) calendar of events to the grid
+//		// and automatically shows pertinent events in the views
+//		this._calendars.push(calendar);
+//		this.connect(calendar, 'onChangeEvent', '_onCalendarChangeEvent');
+//		var eventClass = calendar.defaultEventClass || this.defaultEventClass;
+//		// initialize events
+//		dojo.forEach(calendar.getEvents(), function (event, i) {
+//			// assign an id if not already assigned (this may not be foolproof)
+//			// no uid will break write-capable datastore - mtyson
+//			if (!('uid' in event.data))
+//				event.data.uid = calendar.id + '_' + i;
+//			// use dojo['require'] instead of dojo.require to prevent the build system from trying to bake-in anything
+//			// TODO: is the right way to ensure we have this class loaded?
+//			dojo['require'](event.options.eventClass || eventClass);
+//
+//			// not sure if this is how the event was intended to bubble - mtyson
+//			//this.connect(event, 'onDataChange', '_onEventDataChange');
+//		});
+//		this._loadEventsIntoViews([calendar]);
+//	},
+//
+//	removeCalendar: function (/* dojoc.dojocal.UserCalendar|String */ calendarOrId) {
+//		// summary:
+//		// manually removes a caendar of events and automatically removes the events
+//		// from all of the views
+//		var pos = this._findCalendarPos(calendarOrId);
+//		this._calendars.splice(pos, 1);
+//		// TODO: remove event widgets from views
+//	},
 
 	/***** overrides *****/
 
@@ -281,39 +358,38 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 //console.log('grid postCreate')
 		this.inherited(arguments);
 		// collections
-		this._calendars = [];
-		// make all text unselectable (event widgets should make their text selectable only when/if they are being edited in-place)
-		// TODO: move this to the views
-		dojo.setSelectable(this.domNode, false);
-		// subscribe to topics
-		// note, widgetid is undefined (running against 1.1.1)
-		// Distinguish between adding and updating events
-		dojo.subscribe('dojoc.dojocal.' + (this.widgetid || this.id) + '.eventAdded', this, '_onEventAdded');
-		dojo.subscribe('dojoc.dojocal.' + (this.widgetid || this.id) + '.eventUpdated', this, '_onEventDataChange');
-		if (this.store){
-			this.store.fetch({onComplete: this._onDataLoaded, scope: this});
-		}
+//		this._calendars = [];
+		this._calDefs = {_default: new dojoc.dojocal.CalendarDef({id: '_default'})};
+		// subscribe to private topics
+		this._subscriptions = [
+			dojo.subscribe(djc.createDojoCalTopic(this.id, '_eventAdded'), this, '_onEventAdded'),
+			dojo.subscribe(djc.createDojoCalTopic(this.id, '_eventUpdated'), this, '_onEventUpdated'),
+			dojo.subscribe(djc.createDojoCalTopic(this.id, '_eventRemoved'), this, '_onEventRemoved')
+		];
+//		if (this.store){
+//			this.store.fetch({onComplete: this._onDataLoaded, scope: this});
+//		}
 	},
 
-	/**
-	 * Callback executed after the data store has finished loading the data.
-	 */
-	_onDataLoaded: function(items, request){
-		console.log("Number of items located: " + items.length);
-		// TODO: Move this into dojoc.dojocal.UserCalendar, or make UserCalendar able to handle the JSON object,
-		// so we don't have to programmatically re-add the events to a cal object
-		var count = 0;
-		for (var x in items){
-			var item = items[x];
-			var newCal =
-				new dojoc.dojocal.UserCalendar({id: item.uid, color: '#661100', fontColor: '#665500'}); // TODO: Maybe move UserCalendar.id to .uid to follow iCal spec?
-			newCal.defaultEventClass = 'dojoc.dojocal.InplaceEditableEvent';
-			newCal.addEvents(item.children);
-			this.addCalendar(newCal);
-			count++;
-		}
-		//this._loadEventsIntoViews(cals);
-	},
+//	/**
+//	 * Callback executed after the data store has finished loading the data.
+//	 */
+//	_onDataLoaded: function(items, request){
+//		console.log("Number of items located: " + items.length);
+//		// TODO: Move this into dojoc.dojocal.UserCalendar, or make UserCalendar able to handle the JSON object,
+//		// so we don't have to programmatically re-add the events to a cal object
+//		var count = 0;
+//		for (var x in items){
+//			var item = items[x];
+//			var newCal =
+//				new dojoc.dojocal.UserCalendar({id: item.uid, color: '#661100', fontColor: '#665500'}); // TODO: Maybe move UserCalendar.id to .uid to follow iCal spec?
+//			newCal.defaultEventClass = 'dojoc.dojocal.InplaceEditableEvent';
+//			newCal.addEvents(item.children);
+//			this.addCalendar(newCal);
+//			count++;
+//		}
+//		//this._loadEventsIntoViews(cals);
+//	},
 
 	startup: function () {
 //console.log('startup')
@@ -323,7 +399,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		this._views = this.getChildren();
 		dojo.forEach(this._views, function (view) {
 			dojo.style(view.domNode, 'visibility', 'hidden');
-			view.gridId = this.widgetid || this.id; // widgetid is undefined - mtyson
+			view.gridId = this.id;
 		}, this);
 		// clean up the date property (and set all date-related element texts)
 		this.setDate(this.date);
@@ -332,13 +408,14 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 //console.log('here', this.currentView, this._views)
 		this._switchView(null, this.currentView, false);
 		// create periodic updater
-		this._updaterTimer = setInterval(dojo.hitch(this, this._updateToCurrentTime), 5000);
+		this._updaterTimer = setInterval(dojo.hitch(this, this._updateToCurrentTime), 1000);
 		this.setStartOfDay(this.initialStartTime);
 		this._updateToCurrentTime();
 	},
 
 	destroy: function () {
 		clearInterval(this._updaterTimer);
+		dojo.forEach(this._subscriptions, dojo.unsubscribe);
 		this.inherited(arguments);
 	},
 
@@ -380,40 +457,24 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	/* methods to add/remove/update event widgets */
 
 	_onEventAdded: function (eWidget, view) {
-		// listen for event changes,
-		this.connect(eWidget, 'onDataChange', this, "_onEventDataChange"); //dojo.hitch(this, '_onEventDataChange', eventWidget));
+		return this.onEventAdded(eWidget, view, eWidget.getData(), djc.undelegate(eWidget.getOrigData()));
 	},
 
 	_onEventRemoved: function (eWidget, view) {
-		// TODO
+		return this.onEventRemoved(eWidget, view, eWidget.getData(), djc.undelegate(eWidget.getOrigData()));
 	},
 
-	_loadEventsIntoViews: function (/* Array */ calendars) {
+	_onEventUpdated: function (eWidget, view) {
+		return this.onEventUpdated(eWidget, view, eWidget.getData(), djc.undelegate(eWidget.getOrigData()));
+	},
+
+	_loadEventsIntoViews: function (/* Array */ events) {
 		dojo.forEach(this._views, function (view) {
-			dojo.forEach(calendars, function (calendar) {
-				var events = calendar.getEvents(view.getStartDate(), view.getEndDate());
-				view.addEvents(events, calendar);
-			});
+			view.addEvents(events);
 		});
 	},
 
 	/***** other methods *****/
-
-	_findCalendarById: function (id) {
-		var pos = this._findCalendarPos(id);
-		return pos >= 0 ? this._calendars[pos] : null;
-	},
-
-	_findCalendarPos: function (/* dojoc.dojocal.UserCalendar|String */ which) {
-		var findBy = typeof which == 'string' ? 'id' : 'ref',
-			found = -1;
-		dojo.some(this._calendars, function (cal, pos) {
-			if ((findBy == 'id' && cal.id == which) || (findBy == 'ref' && cal == which))
-				found = pos;
-			return found >= 0;
-		});
-		return found;
-	},
 
 	_findView: function (viewName) {
 		var result = null;
@@ -447,37 +508,34 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	},
 
 	_transitionViews: function (oldMode, newMode, oldNode, newNode) {
-		// TODO: finish _transitionsViews() by creating a property to specify fadeIn, wipeIn, etc.
-		// TODO: stop any current animation before starting new one!
-		return false;
-	},
 
-	/***** internal event handlers ****/
-
-	_onCalendarChangeEvent: function (event, changeType) {
-		if (changeType == 'add') {
-			// TODO:
-			// create widgets for day, week, and month views
-			// store in local cache????
+		// prepare the views
+		function begin () {
+			dojo.style(newNode, {opacity: 0, visibility: 'visible', zIndex: 1});
+			dojo.style(oldNode, 'zIndex', 0);
 		}
-		else if (changeType == 'remove') {
-			// TODO:
-			// destroy widgets for day, week, and month views
-			// remove from local cache????
-		}
-	},
 
-	_onEventDataChange: function (eventWidget) {
-		console.debug("EVENT CHANGE: " + eventWidget);
-		if (this.store){
-			if (this.store.getFeatures()['dojo.data.api.Write']){
-				// TODO: Very important: Improve the performance of updating event items.
+		// set up and play the animation
+		var anim = dojo.fadeIn({
+				node: newNode,
+				duration: this.transitionDuration,
+				start: 0,
+				end: 1
+			}),
+			connects = [
+				dojo.connect(anim, 'onBegin', begin),
+				dojo.connect(anim, 'onEnd', end)
+			];
+		anim.play();
 
-				for (var i = 0; i < items.length; i++){
-					this.store.setValue(item, "foo", ("bar" + 1));
-				}
-			}
+		// clean up
+		function end () {
+			dojo.style(newNode, 'opacity', 1);
+			dojo.style(oldNode, 'visibility', 'hidden');
+			dojo.forEach(connects, dojo.disconnect);
 		}
+
+		return true; // true == we handled it
 	}
 
 });

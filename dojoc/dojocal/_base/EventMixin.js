@@ -15,7 +15,6 @@
 dojo.provide('dojoc.dojocal._base.EventMixin');
 
 dojo.require('dojo.date');
-dojo.require('dojo.date.locale');
 
 dojo.declare('dojoc.dojocal._base.EventMixin', null, {
 	/**
@@ -51,7 +50,13 @@ dojo.declare('dojoc.dojocal._base.EventMixin', null, {
 
 	// onDataChange: Function
 	// connect to this method to capture user changes.
-	onDataChange: function () {},
+//	onDataChange: function () {},
+
+	postCreate: function () {
+		// create a protected clone of the data
+		// FIXME: move this to the constructor?
+		this.data = dojo.delegate(this.data);
+	},
 
 	isAllDay: function () {
 		// summary: returns the isAllDay property from the data/UserEvent
@@ -70,7 +75,7 @@ dojo.declare('dojoc.dojocal._base.EventMixin', null, {
 	getDateTime: function () {
 		// summary: returns the startDateTime property from the data/UserEvent
 		//   as a Javascript Date object
-		return this.data && this.data._startDateTime || null;
+		return this.data && this.data.startDateTime || null;
 	},
 
 	getDuration: function () {
@@ -80,9 +85,9 @@ dojo.declare('dojoc.dojocal._base.EventMixin', null, {
 
 	getEndDateTime: function () {
 		// summary: a convenience function to return startDateTime + duration
-		var endDate = dojo.date.add(this.data._startDateTime, 'second', this.data.duration);
+		var endDate = dojo.date.add(this.data.startDateTime, 'second', this.data.duration);
 		// all day events have durations in exact days, which makes this return one too many
-		if (this.data.isAllDay && endDate > this.data._startDateTime)
+		if (this.data.isAllDay && endDate > this.data.startDateTime)
 			endDate = dojo.date.add(endDate, 'day', -1);
 		return endDate;
 	},
@@ -115,14 +120,29 @@ dojo.declare('dojoc.dojocal._base.EventMixin', null, {
 		// summary:
 		//   sets only the dateTime of this event's data
 		//   override this method to change the UI for the event widget in response to the change
-		this.data._startDateTime = dateTime;
-		this.data.startDateTime = dojo.date.stamp.toISOString(dateTime);
+		this.data.startDateTime = dateTime;
 	},
 
 	setData: function (/* Object */ data) {
 		// summary:
 		// override this method to change the UI for the event widget in response to data changes
-		this.data = data;
+		// creates a protected clone of the data using dojo.delegate
+		this.data = dojo.delegate(data);
+	},
+
+	resetData: function () {
+		// summary:
+		// reverts the data for this event back to the original values
+		// since we're using dojo.delegate, we can just delete the properties we set on our copy
+		var data = this.data;
+		for (var p in data)
+			if (data.hasOwnProperty(p))
+				delete data[p];
+	},
+
+	getOrigData: function () {
+		// Note: this will only work if the original data was created using the new operator (?)
+		return this.data.constructor.prototype;
 	},
 
 	show: function () {

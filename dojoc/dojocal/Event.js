@@ -34,7 +34,7 @@ dojo.declare('dojoc.dojocal.Event', [dijit._Widget, dijit._Templated, dojoc.dojo
 
 	// cssClasses: String
 	//   additional css classes to add to the root dom node of the event widget
-	//   this is useful for creating customized event widgets without subclassing
+	//   this is useful for creating customized event widgets without subclassing or modifying the dojocal.css
 	cssClasses: '',
 
 	// timeFormat: String
@@ -172,7 +172,7 @@ dojo.declare('dojoc.dojocal.Event', [dijit._Widget, dijit._Templated, dojoc.dojo
 	},
 
 	_updateTimeLabel: function () {
-		this._timeLabel = dojo.date.locale.format(this.data._startDateTime, {selector: 'time', timePattern: this.timeFormat});
+		this._timeLabel = dojo.date.locale.format(this.data.startDateTime, {selector: 'time', timePattern: this.timeFormat});
 		if (this.timeTextNode && this.timeTextNode.innerHTML != this._timeLabel)
 			this.timeTextNode.innerHTML = this._timeLabel;
 	}
