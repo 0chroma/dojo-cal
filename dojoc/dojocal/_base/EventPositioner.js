@@ -9,7 +9,7 @@
 */
 
 /*
-	Author: john
+	Author: unscriptable
 	Date: Jan 31, 2009
 	TODO: break the single methods into several methods
 	TODO: figure out why this fails for groups with common events some times

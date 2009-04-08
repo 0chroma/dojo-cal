@@ -1,5 +1,5 @@
 /*
- * Author: john
+ * Author: unscriptable
  * Date: Feb 22, 2009
  */
 dojo.provide('dojoc.dojocal.views.DayView');

@@ -1,5 +1,5 @@
 /*
- * Author: john
+ * Author: unscriptable
  * Date: Feb 7, 2009
  */
 dojo.provide('dojoc.dojocal._base.EventMoveable');

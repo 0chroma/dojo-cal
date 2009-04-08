@@ -9,7 +9,7 @@
 */
 
 /*
-	Author: john
+	Author: unscriptable
 	Date: Jan 31, 2009
  */
 dojo.provide('dojoc.dojocal.SlickGrid');

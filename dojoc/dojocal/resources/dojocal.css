@@ -69,6 +69,7 @@
 }
 
 .dj_ie7 .dojocalDaysColumn {
+	/* TODO: how to detect this and remove browser sniff dependency? */
 	height: 100%; /* IE 7 needs this */
 }
 
@@ -84,7 +85,6 @@
 }
 
 .monthView .dojocalHeaderTable {
-	border-right: 0 none;
 }
 
 .dojocalDateLeader {
@@ -259,7 +259,7 @@
 
 .dojocalDayColumn {
 	/* border, padding, width, and margin have to be exactly the same as .dojocalDateCell */
-	width: 13.5%;
+	width: 14.29%;
 	height: 100%;
 	border: 0;
 	border-left: 1px solid #cccccc;
@@ -268,7 +268,7 @@
 }
 
 .dayView .dojocalDayColumn {
-	width: 94.5%;  7 x weekly .dojocalDayColumn width
+	width: 100%;  7 x weekly .dojocalDayColumn width
 }
 
 .dojocalDayColumn TR {
@@ -276,14 +276,6 @@
 	border: 0;
 	padding: 0;
 	margin: 0;
-}
-
-.dj_ie .dojocalDayColumn {
-	width: 14.29%  /* friggin IE tables have their own rules (as usual) */
-}
-
-.dj_ie .dayView .dojocalDayColumn {
-	width: 100%;  /* 7 x weekly .dojocalDayColumn width */
 }
 
 .dojocalDayColumnLayout {
@@ -334,11 +326,13 @@
 }
 
 .dojocalDay-selected {
+	/* set a fallback first, then try to set the background using RGBA */
 	background: url(images/day-highlight-selected.png) repeat;
 	background: rgba(191, 191, 191, 0.13);
 }
 
 .dojocalDay-today {
+	/* set a fallback first, then try to set the background using RGBA */
 	background: url(images/day-highlight-today.png) repeat;
 	background: rgba(0, 53, 173, 0.13);
 }

@@ -9,7 +9,7 @@
 */
 
 /*
-	Author: john
+	Author: unscriptable
 	Date: Jan 31, 2009
 	All common classes and "enums" are found here.
 	For convenience, qualified names are under dojoc.dojocal, rather than
@@ -104,6 +104,16 @@ dojo.mixin(dojoc.dojocal, {
 			});
 		}
 		return ss;
+	},
+
+	getCssWorkArounds: function () {
+		// summary: checks for common browser css deficiencies and returns a list of offenders
+		// TODO: finish getCssWorkArounds
+		var workArounds = [];
+		// rgba: set bg to something simple, then set to rgba(...) and detet if it changed
+		// Expanding Empty Box: set height and contents and detect height
+		// PNG transparency: how to do this??????
+		// Box Offsets: create a child node sized with top and bottom and check height
 	},
 
 	getDojocalStylesheet: function () {
