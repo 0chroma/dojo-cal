@@ -46,13 +46,14 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 	},
 
 	_addEvent: function (eWidget) {
+		this.inherited(arguments);
 		function showTitle (widget, size) {
 			// expand title to span all pseudo-widgets
 			// we use the last widget since it's topmost in the z-order (we'd have to change the
 			// z-index of the TDs to fix this)
 			dojo.style(widget.domNode, {
 				overflow: 'visible', // allows text to spread across cloned events
-				zIndex: '10 !important' // overrides hovered/selected of other events which covers title text
+				zIndex: '10' // overrides hovered/selected of other events which covers title text
 			});
 			dojo.style(widget.titleNode, {
 				visibility: 'visible',
@@ -103,7 +104,7 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 					if (isLastDay)
 						classes.push('lastDay');
 					if (isIntraDay)
-						classes.push('intraDay');
+						classes.push('middleDay');
 					if (currWidget != root)
 						classes.push('pseudoDay');
 					node.className = classes.join(' ');

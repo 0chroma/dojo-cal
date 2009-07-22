@@ -8,9 +8,7 @@ dojo.require('dijit._Templated');
 dojo.require('dijit._Widget');
 dojo.require('dojoc.dojocal._base.ViewMixin');
 
-(function () { // closure for local variables
-
-var djc = dojoc.dojocal;
+(function (/* dojoc.dojocal */ djc) { // closure for local variables
 
 /**
  * dojoc.dojocal._base.ViewBase
@@ -20,6 +18,8 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 	/* overrides */
 
 	eventPositionerClass: 'dojoc.dojocal._base.EventPositioner',
+
+	eventMoveableClass: 'dojoc.dojocal._base.EventMoveable',
 
 	addEvent: function (/* dojoc.dojocal.UserEvent */ e) {
 		this.inherited(arguments);
@@ -105,8 +105,37 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 		dojo.attr(eventWidget.domNode, 'isDojocalEvent', 'true');
 		dojo.attr(eventWidget.domNode, 'dojocalCalId', eventWidget.calendarId);
 		dojo.attr(eventWidget.domNode, 'dojocalEventId', eventWidget.data.uid);
+		if (this.dndMode != djc.DndModes.NONE) {
+			this._makeEventDraggable(eventWidget);
+		}
 		return eventWidget;
 	},
+
+	_makeEventDraggable: function (eventWidget) {
+		if (this.eventMoveableClass) {
+			// ensure we have the right file loaded
+			dojo['require'](this.eventMoveableClass);
+			dojo.addClass(eventWidget.domNode, 'draggableEvent');
+			var params = this._getDragBounds(eventWidget),
+				moveClass = dojo.getObject(this.eventMoveableClass),
+				moveable = eventWidget.moveable = new moveClass(eventWidget.domNode, params);
+			eventWidget.connect(moveable, 'onMoveStart', dojo.hitch(this, '_onEventDragStart', eventWidget));
+			eventWidget.connect(moveable, 'onMoving', dojo.hitch(this, '_onEventDragging', eventWidget));
+			eventWidget.connect(moveable, 'onMoveStop', dojo.hitch(this, '_onEventDragStop', eventWidget));
+		}
+	},
+
+	_getDragBounds: function (eventWidget) {
+		return {
+			delay: this.dndDetectDistance,
+			sizerNode: eventWidget.handleNode || null
+		};
+	},
+
+	// drag-and-drop stubs (overridden in subclasses)
+	_onEventDragStart: function (eventWidget, /* dojo.dnd.Mover */ mover) {},
+	_onEventDragging: function (eventWidget, /* dojo.dnd.Mover */ mover) {},
+	_onEventDragStop: function (eventWidget, /* dojo.dnd.Mover */ mover) {},
 
 	_removeEventWidget: function (eWidget) {
 		eWidget.destroy();
@@ -203,4 +232,4 @@ dojo.declare('dojoc.dojocal._base.ViewBase', [dijit._Widget, dojoc.dojocal._base
 
 });
 
-})(); // end of closure for local variables
+})(dojoc.dojocal); // end of closure for local variables

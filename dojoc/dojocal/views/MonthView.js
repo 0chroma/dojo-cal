@@ -7,16 +7,14 @@ dojo.provide('dojoc.dojocal.views.MonthView');
 dojo.require('dijit._Templated');
 dojo.require('dojoc.dojocal._base.ViewBase');
 
-(function () { // closure for local variables
-
-var djc = dojoc.dojocal;
+(function (/* dojoc.dojocal */ djc, /* dojo.date */ datelib) { // closure for local variables
 
 /**
  * dojoc.dojocal.views.MonthView
  * TODO:
  * - this widget shares some with the MultiDayViewBase class.
  */
-dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dijit._Templated], {
+dojo.declare('dojoc.dojocal.views.MonthView', [djc._base.ViewBase, dijit._Templated], {
 
 	templatePath: dojo.moduleUrl('dojoc.dojocal.views', 'MonthView.html'),
 
@@ -26,7 +24,9 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 
 	headerDatePattern: 'EEE',
 
-	cornerCellDatePattern: 'yy', // any more and it won't fit
+	cornerCellDatePattern: 'yy', // any more digits and it won't fit!
+
+	eventMoveableClass: 'dojoc.dojocal._base.AllDayEventMoveable',
 
 	// showLeaderColumn: Boolean
 	// set to true to show the leading column. this column can be used for several purposes, including
@@ -54,11 +54,11 @@ dojo.declare('dojoc.dojocal.views.MonthView', [dojoc.dojocal._base.ViewBase, dij
 		this._weekStartDate = djc.getWeekStartDate(date, this.weekStartsOn);
 		this._startDate = djc.getMonthStartDate(date, this.weekStartsOn);
 		this._endDate = djc.getMonthEndDate(date, this.weekStartsOn);
-console.log(this._endDate, this.declaredClass);
+//console.log(this._endDate, this.declaredClass);
 		// if month changed
 		// Note: don't change the month view if we're currently viewing it and the new date is still
 		// visible but in a different month (this._startDate should not change in this case)
-		if (!prevStart || dojo.date.compare(prevStart, this._startDate) != 0) {
+		if (!prevStart || datelib.compare(prevStart, this._startDate) != 0) {
 			this._setMonthHeaderDates();
 			this._setMonthCellHeaderDates();
 			this._setCornerHeaderDate();
@@ -109,7 +109,7 @@ console.log(this._endDate, this.declaredClass);
 			if (startDate < endDate) {
 				// loop through entire week and add pseudo widgets if needed
 				var dtFirst = djc.maxDate(startDate, this._startDate),
-					dtLast = djc.minDate(endDate, dojo.date.add(dtFirst, 'day', 6)),
+					dtLast = djc.minDate(endDate, datelib.add(dtFirst, 'day', 6)),
 					date = dtFirst,
 					pos = this._dateToCellPos(dtFirst),
 					visCount = 1, // count of visible widgets for this event
@@ -135,8 +135,8 @@ console.log(this._endDate, this.declaredClass);
 					}
 					this._addEventToLayout(currWidget, this._dayLayouts[pos]);
 					// check for first, last, or intra-day
-					var isFirstDay = dojo.date.compare(date, startDate, 'date') == 0,
-						isLastDay = dojo.date.compare(date, endDate, 'date') == 0,
+					var isFirstDay = datelib.compare(date, startDate, 'date') == 0,
+						isLastDay = datelib.compare(date, endDate, 'date') == 0,
 						isIntraDay = !isFirstDay && !isLastDay,
 						classes = [baseClasses, 'dojocalAllDay dojocalMultiday'];
 					// add appropriate classes
@@ -145,12 +145,12 @@ console.log(this._endDate, this.declaredClass);
 					if (isLastDay)
 						classes.push('lastDay');
 					if (isIntraDay)
-						classes.push('intraDay');
+						classes.push('middleDay');
 					if (currWidget != root)
 						classes.push('pseudoDay');
 					node.className = classes.join(' ');
 					pos++;
-					date = dojo.date.add(date, 'day', 1);
+					date = datelib.add(date, 'day', 1);
 				}
 				while (date <= dtLast);
 				// if we've hit the end of the event's range (0 means we just executed showtitle above, so don't repeat)
@@ -173,14 +173,17 @@ console.log(this._endDate, this.declaredClass);
 
 	_addEventToLayout: function (eWidget, layoutEl) {
 		layoutEl.appendChild(eWidget.domNode);
+		// clear this from any prevous drag-and-drop. TODO: move this to the appropriate place
+		dojo.style(eWidget.domNode, 'left', '');
 		dojo.publish('dojoc.dojocal.' + this.gridId + '.eventAdded', [eWidget, this]);
 	},
 
-	_checkEventOverlapping: function (/* Node */ layoutNode, /* Date */ date) {
+	_checkEventOverlapping: function () {
 		if (this._eventPositioner) {
 			// get event box layout data
-			var eWidgets = this._getAllEventsInNode(layoutNode),
-				eData = this._eventPositioner.checkOverlappingDayEvents(eWidgets, date, 6 * 7);
+			// check the whole grid since multi-day events could span several days/weeks
+			var eWidgets = this._getAllEventsInNode(this.monthBodyNode),
+				eData = this._eventPositioner.checkOverlappingDayEvents(eWidgets, this._startDate, 6 * 7);
 //console.log(eWidgets)
 			// now, loop through ALL boxes and set their nodes' widths, lefts, and rights
 			dojo.forEach(eData, function (datum) {
@@ -201,30 +204,40 @@ console.log(this._endDate, this.declaredClass);
 
 	_afterEventChange: function () {
 		// this must be run after adding or removing one or more events
-		this._checkEventOverlapping(this.monthBodyNode, this._startDate);
+		this._checkEventOverlapping();
 	},
 
 	_dateToCellPos: function (date) {
-		return dojo.date.difference(this._startDate, date, 'day');
+		return datelib.difference(this._startDate, date, 'day');
 	},
 
 	_cellPosToDate: function (pos) {
-		return dojo.date.add(this._startDate, pos, 'day');
+		return datelib.add(this._startDate, 'day', pos);
+	},
+
+	_nodeToLayout: function (node) {
+		return djc.getAncestorByClassName(node, 'dojocalLayout');
+	},
+
+	_cellToDate: function (cell) {
+		// make sure we've got the right node
+		cell = djc.getAncestorByAttrName(cell, 'day');
+		return this._cellPosToDate(Number(cell.getAttribute('day')));
 	},
 
 	_setMonthHeaderDates: function () {
 		var date = new Date(this._weekStartDate);
 		dojo.query('.dojocalDateCellText', this.monthHeaderTable).forEach(function (node) {
-			node.innerHTML = dojo.date.locale.format(date, {selector: 'date', datePattern: this.headerDatePattern});
+			node.innerHTML = datelib.locale.format(date, {selector: 'date', datePattern: this.headerDatePattern});
 			// 0 = Sunday. don't store date object on node because IE will leak memory
 			dojo.attr(djc.getAncestorByTagName(node, 'TD'), 'day', date.getDay().toString());
-			date = dojo.date.add(date, 'day', 1);
+			date = datelib.add(date, 'day', 1);
 		}, this);
 	},
 
 	_setCornerHeaderDate: function () {
 		if (this.cornerCellDatePattern != null) {
-			var dateString = dojo.date.locale.format(this.getStartDate(), {selector: 'date', datePattern: this.cornerCellDatePattern});
+			var dateString = datelib.locale.format(this.getStartDate(), {selector: 'date', datePattern: this.cornerCellDatePattern});
 			dojo.query('.dojocalDateLeader .dojocalDateCellText', this.domNode).forEach(function (node) {
 				node.innerHTML = dateString;
 			}, this);
@@ -251,15 +264,13 @@ console.log(this._endDate, this.declaredClass);
 			rowsUsed = 0;
 		dojo.query('.dojocalDayCellHeader', this.monthTableNode).forEach(function (node, pos) {
 			var datePattern = pos == 0 || date.getDate() == 1 ? this.monthFirstCellDatePattern : this.monthCellDatePattern;
-			node.innerHTML = dojo.date.locale.format(date, {selector: 'date', datePattern: datePattern});
+			node.innerHTML = datelib.locale.format(date, {selector: 'date', datePattern: datePattern});
 			// 0 = Sunday. don't store date object on node because IE will leak memory
 			var td = djc.getAncestorByTagName(node, 'TD');
 			if (date.getMonth() <= currMonth && date.getFullYear() <= currYear)
 				rowsUsed = Math.max(rowsUsed, td.parentNode.rowIndex);
-			dojo[date.getMonth() != currMonth ? 'addClass' : 'removeClass'](td, 'dojocalDayCellOutOfMonth');
-			// TODO: is this next line useful?
-			dojo.attr(td, 'day', date.getDay().toString());
-			date = dojo.date.add(date, 'day', 1);
+			dojo[date.getMonth() != currMonth ? 'addClass' : 'removeClass'](td, 'dojocalDayCellOutOfMonth');			dojo.attr(td, 'day', pos);
+			date = datelib.add(date, 'day', 1);
 		}, this);
 		dojo.query('.dojocalMonthRow', this.monthTableNode).forEach(function (row) {
 			dojo.style(row, 'display', (row.rowIndex > rowsUsed) ? 'none' : '');
@@ -297,7 +308,44 @@ console.log(this._endDate, this.declaredClass);
 			dojo.addClass(this.domNode, 'noLeaderColumn');
 	},
 
+	_getDragBounds: function (eventWidget) {
+		return dojo.mixin(this.inherited(arguments), {
+			boundingNode: this.monthTableNode,
+			scrollingNode: this.monthContainerNode,
+			targetNodes: this._dayLayouts
+		});
+	},
+
 	/* internal event handlers */
+
+	_onEventDragStart: function (eventWidget, /* dojo.dnd.Mover */ mover) {
+		// clear any local styles that were added in the routines to check overlapping TODO: move this to the event positioner
+		var es = eventWidget.domNode.style;
+		es.left = es.width = es.minWidth = '';
+		// looks nicer unselected, but maybe we should do this some other way?
+		eventWidget.setSelected(false);
+	},
+
+	_onEventDragging: function (eventWidget, /* dojo.dnd.Mover */ mover) {
+	},
+
+	_onEventDragStop: function (eventWidget, /* dojo.dnd.Mover */ mover) {
+		// construct the event's new date-time
+		var newCol = mover.host.destinationNode;
+		var oldDate = eventWidget.getDateTime(),
+			oldDay = djc.dateOnly(oldDate),
+			newDay = this._cellToDate(newCol),
+			newDate = datelib.add(oldDate, 'day', datelib.difference(oldDay, newDay, 'day'));
+		eventWidget.setDateTime(newDate);
+		// remove position set by drag-and-drop
+		dojo.style(eventWidget.domNode, {top: '', left: ''});
+		// move widget
+		this._addEventToLayout(eventWidget, newCol);
+		// update view
+		this._checkEventOverlapping()
+		this._selectEventWidget(eventWidget);
+		//TODO: this._onEventChanged(eventWidget, {startDate: oldDate});
+	},
 
 	_onHeaderDateClick: function () {
 		// TODO
@@ -311,4 +359,4 @@ console.log(this._endDate, this.declaredClass);
 
 });
 
-})(); // end of closure for local variables
+})(dojoc.dojocal, dojo.date); // end of closure for local variables

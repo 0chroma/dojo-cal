@@ -692,7 +692,7 @@
 /* MultiDay events (these are AllDay events that span multiple days) */
 
 .dojocalMultiday.firstDay,
-.dojocalMultiday.intraDay {
+.dojocalMultiday.middleDay {
 	/* overlap the right border of a calendar column/cell */
 	/* padding works here since we're using box offsets to place the border and background */
 	padding: 0 1px 0 0;
@@ -714,8 +714,8 @@
 	-webkit-border-bottom-right-radius: 0;
 }
 
-.dojocalMultiday.intraDay .dojocalEventBackground,
-.dojocalMultiday.intraDay .dojocalEventBorder {
+.dojocalMultiday.middleDay .dojocalEventBackground,
+.dojocalMultiday.middleDay .dojocalEventBorder {
 	/* remove border and radius on the both sides */
 	border-right: 0 none;
 	border-left: 0 none;
@@ -737,12 +737,12 @@
 }
 
 .dojocalMultiday.firstDay .dojocalEventTitle,
-.dojocalMultiday.intraDay .dojocalEventTitle {
+.dojocalMultiday.middleDay .dojocalEventTitle {
 	/* let the last widget show the title since it is topmost because of the TDs */
 	visibility: hidden;
 }
 
-.dojocalMultiday.intraDay .dojocalEventHandle {
+.dojocalMultiday.middleDay .dojocalEventHandle {
 	display: none;
 }
 
@@ -769,6 +769,10 @@
 /* month view */
 
 .monthView .dojocalEventTime {
+	display: none;
+}
+
+.monthView .dojocalIntraDayEvent .dojocalEventHandle {
 	display: none;
 }
 

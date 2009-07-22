@@ -219,7 +219,22 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 		this._switchView(oldView, this.currentView, true);
 	},
 
-	// TODO: add methods to get, add, and remove views?
+	addView: function (/* dojoc.dojocal._base.ViewMixin */ newView) {
+		// summary:
+		// adds a programmatically-created dojocal view and initializes it
+		// new view must implement the methods of dojoc.dojocal._base.ViewMixin
+		this._views.push(newView);
+		newView.gridId = this.id;
+		newView.setDate(this.date);
+		newView.setStartOfDay(this.getStartOfDay());
+		newView.updateTimeOfDay();
+		this.addChild(newView);
+		if (this._started && newView.selected) {
+			this.setCurrentView(newView);
+		}
+	},
+
+	// TODO: add methods to retreive and remove views?
 
 	setDate: function (/* Date|String? */ date) {
 		// summary: sets the new date for the grid and adjusts the views accordingly
@@ -357,8 +372,9 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	postCreate: function () {
 //console.log('grid postCreate')
 		this.inherited(arguments);
+		this.date = dojoc.dojocal.dateOnly(new Date());
 		// collections
-//		this._calendars = [];
+		this._views = [];
 		this._calDefs = {_default: new dojoc.dojocal.CalendarDef({id: '_default'})};
 		// subscribe to private topics
 		this._subscriptions = [

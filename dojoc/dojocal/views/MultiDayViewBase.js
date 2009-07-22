@@ -19,7 +19,10 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 
 	templatePath: dojo.moduleUrl('dojoc.dojocal.views', 'MultiDayView.html'),
 
-	/* overrides */
+	// eventAllDayMoveableClass : String
+	// this is the EventMoveable subclass to manage dnd ops for the AllDay events,
+	// rather than the normal time-of-day events
+	eventAllDayMoveableClass: 'dojoc.dojocal._base.AllDayEventMoveable',
 
 	// dayCount: Number
 	// number of days to show in the view
@@ -29,6 +32,8 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 	// used for event styling and animation to determine whether to display
 	// the event collapsed or expanded
 	isExpanded: false,
+
+	/* overrides */
 
 	setStartOfDay: function (/* Number */ minuteOfDay) {
 		this.inherited(arguments);
@@ -86,7 +91,13 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 	},
 
 	_scrollToTime: function (/* Number */ minuteOfDay) {
-		this.scrollContainerNode.scrollTop = this.bodyNode.offsetHeight / djc.minutesPerDay * minuteOfDay;
+		// IE 7 fails sometimes (TODO: find out why)
+		try {
+			this.scrollContainerNode.scrollTop = this.bodyNode.offsetHeight / djc.minutesPerDay * minuteOfDay;
+		}
+		catch (ex) {
+			console.error('Unable to scroll to time.')
+		}
 	},
 
 	_setCornerHeaderDate: function () {
@@ -217,32 +228,29 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 
 	_addEvent: function (eWidget, isInitialRender) {
 		// TODO: put common functionality here (see subclasses for now)
-	},
-
-	_newEventWidget: function (clazz, data, color, fontColor, calendarId) {
-		var eventWidget = this.inherited(arguments);
-		// connect events
-		if (this.dndMode != dndModes.NONE) {
-			dojo.addClass(eventWidget.domNode, 'draggableEvent');
-			var params = {delay: this.dndDetectDistance, sizerNode: eventWidget.handleNode || null},
-				moveable = eventWidget.moveable = new dojoc.dojocal._base.EventMoveable(eventWidget.domNode, params);
-			if (eventWidget.isAllDay()) {
-				eventWidget.connect(moveable, 'onMoveStart', dojo.hitch(this, '_onDayEventDragStart', eventWidget));
-				// TODO: change these too:
-				eventWidget.connect(moveable, 'onMoveStop', dojo.hitch(this, '_onEventDragStop', eventWidget));
-				eventWidget.connect(moveable, 'onMoving', dojo.hitch(this, '_onEventDragging', eventWidget));
-			}
-			else {
-				eventWidget.connect(moveable, 'onMoveStart', dojo.hitch(this, '_onEventDragStart', eventWidget));
-				eventWidget.connect(moveable, 'onMoveStop', dojo.hitch(this, '_onEventDragStop', eventWidget));
-				eventWidget.connect(moveable, 'onMoving', dojo.hitch(this, '_onEventDragging', eventWidget));
-			}
-		}
-		return eventWidget;
+		this.inherited(arguments);
 	},
 
 	_removeEventWidget: function (eWidget) {
 		eWidget.destroy();
+	},
+
+	_makeEventDraggable: function (eventWidget) {
+		dojo.addClass(eventWidget.domNode, 'draggableEvent');
+		var params = this._getDragBounds(eventWidget),
+			moveClass = dojo.getObject(eventWidget.isAllDay() ? this.eventAllDayMoveableClass : this.eventMoveableClass),
+			moveable = eventWidget.moveable = new moveClass(eventWidget.domNode, params);
+		eventWidget.connect(moveable, 'onMoveStart', dojo.hitch(this, '_onEventDragStart', eventWidget));
+		eventWidget.connect(moveable, 'onMoveStop', dojo.hitch(this, '_onEventDragStop', eventWidget));
+		eventWidget.connect(moveable, 'onMoving', dojo.hitch(this, '_onEventDragging', eventWidget));
+	},
+
+	_getDragBounds: function (eventWidget) {
+		return dojo.mixin(this.inherited(arguments), {
+			boundingNode: this.tableNode,
+			scrollingNode: this.scrollContainerNode,
+			targetNodes: this._dayLayouts
+		});
 	},
 
 	/**
@@ -257,7 +265,7 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 			durationMinutes = Math.round(eWidget.data.duration / 60);
 		// convert to % of a day
 		dojo.style(eWidget.domNode, 'top', startMinutes / djc.minutesPerDay * 100 + '%');
-		// clear this from any prevous drag-and-drop
+		// clear this from any prevous drag-and-drop. TODO: move this to the appropriate place
 		dojo.style(eWidget.domNode, 'left', '');
 		dojo.style(eWidget.domNode, 'height', durationMinutes / djc.minutesPerDay * 100 + '%');
 		layoutEl.appendChild(eWidget.domNode);
@@ -269,6 +277,7 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 	},
 
 	_removeAllEventsFromView: function (/* DOMNode */ viewEl, /* String? */ calendarId, /* String? */ eventId) {
+		this._selectEventWidget(null); // removes reference to selected widget (thanks Matt!)
 		dojo.forEach(this._getAllEventsInNode(viewEl, calendarId, eventId), function (e) {
 			e.destroy();
 		});
@@ -297,13 +306,13 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 	},
 
 	_nodeToLayout: function (node) {
-		return djc.getAncestorByAttrName(node, 'day');
+		return djc.getAncestorByClassName(node, 'dojocalLayout');
 	},
 
 	/* common event handlers */
 
 	_onEventChanged: function (eWidget, oldProps) {
-		dojo.publish(djc.createDojoCalTopic(this.gridId, 'eventUpdated'), [this, eventWidget, oldProps]);
+		dojo.publish(djc.createDojoCalTopic(this.gridId, 'eventUpdated'), [this, eWidget, oldProps]);
 	},
 
 	_afterEventChange: function () {
@@ -516,7 +525,7 @@ console.log('_onAllDayEventDragStart')
 			}, this);
 		}
 		// clear classes added during overlapping checks TODO: do this in event positioner!
-		dojo.forEach(['firstDay', 'lastDay', 'intraDay', 'pseudoDay'], function (className) { dojo.removeClass(eNode, className); });
+		dojo.forEach(['firstDay', 'lastDay', 'middleDay', 'pseudoDay'], function (className) { dojo.removeClass(eNode, className); });
 		eventWidget._dndData = this._getDraggedEventStartData(eventWidget);
 		// looks nicer unselected
 		eventWidget.setSelected(false);

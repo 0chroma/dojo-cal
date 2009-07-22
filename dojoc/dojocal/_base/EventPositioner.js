@@ -148,19 +148,27 @@ dojo.declare('dojoc.dojocal._base.EventPositioner', [], {
 		//   an array of the event widgets to position
 		// returns:
 		//   an array of objects: {widget: Event, box: OffsetBox, newBox: OffsetBox}
-
+//console.log('checkOverlappingDayEvents: ', arguments)
 		if (eventWidgets) {
 			// check that startDate has no time
 			startDate = dojoc.dojocal.dateOnly(startDate);
-			// newDaySet creates a "set" of days to fill with events
+			// setOf creates a "set" of days to fill with events
 			function setOf (length, isFilled) {
-					// using strings for sets for native-speed comparisons later
-					// using this routine instead of dojo.string.pad for speed (and optimized for 7-day sets)
-					var _base = isFilled ? '1111111' : '0000000', set = _base;
-					while (set.length < length) set += _base;
-					if (set.length > length) set = set.substr(0, length);
-					return set;
-				};
+				// using strings for sets for native-speed comparisons later
+				// using this routine instead of dojo.string.pad for speed (and optimized for 7-day sets)
+				var _base = isFilled ? '1111111' : '0000000', set = _base;
+				while (set.length < length) set += _base;
+				if (set.length > length) set = set.substr(0, length);
+				return set;
+			}
+			// isOpenInSet checks if there is an open subset at the given positions
+			function isOpenInSet (set, startPos, endPos) {
+				return parseInt(set.substr(startPos, endPos - startPos + 1)) == 0
+			}
+			// fillSet fills the given set from startPos to endPos
+			function fillSet (set, startPos, endPos) {
+				return (set = set.substr(0, startPos) + setOf(endPos - startPos + 1, true) + set.substr(endPos + 1));
+			}
 
 			var eData = [], // the return data
 				baseSet = setOf(numDays),
@@ -196,11 +204,11 @@ dojo.declare('dojoc.dojocal._base.EventPositioner', [], {
 					var pStart = Math.min(numDays - 1, Math.max(0, dojo.date.difference(startDate, djc.dateOnly(eWidget.getDateTime()), 'day'))),
 						pEnd = Math.min(numDays - 1, Math.max(0, dojo.date.difference(startDate, djc.dateOnly(eWidget.getEndDateTime()), 'day'))),
 						row = -1; // row in which to place this event
-
+//console.log(pStart, pEnd, eWidget.summary);
 					// look for a place to put the event
 					dojo.some(dayMatrix, function (daySet, i) {
 						// check for room in this daySet
-						if (parseInt(daySet.substr(pStart, pEnd - pStart + 1)) == 0) {
+						if (isOpenInSet(daySet, pStart, pEnd)) {
 							row = i;
 //console.log('found space in row: ', row);
 							return true;
@@ -211,12 +219,12 @@ dojo.declare('dojoc.dojocal._base.EventPositioner', [], {
 					if (row < 0) {
 						// create a new row
 						row = dayMatrix.length;
-						dayMatrix[row] = baseSet + ''; // cheap way to clone
+						dayMatrix[row] = setOf(numDays);
 					}
 //console.log(pStart, pEnd, row, dayMatrix[row], eWidget, eWidget.domNode)
 					// insert event into daySet
 					var daySet = dayMatrix[row];
-					dayMatrix[row] = daySet.substr(0, pStart) + setOf(pEnd - pStart + 1, true) + daySet.substr(pEnd + 1);
+					dayMatrix[row] = fillSet(dayMatrix[row], pStart, pEnd);
 
 					mruRow = row;
 					mruWidget = eWidget;

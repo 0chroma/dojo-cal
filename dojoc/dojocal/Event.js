@@ -35,7 +35,7 @@ dojo.declare('dojoc.dojocal.Event', [dijit._Widget, dijit._Templated, dojoc.dojo
 	// cssClasses: String
 	//   additional css classes to add to the root dom node of the event widget
 	//   this is useful for creating customized event widgets without subclassing or modifying the dojocal.css
-	cssClasses: '',
+	cssClasses: 'dojocalIntraDayEvent',
 
 	// timeFormat: String
 	//   the dojo.date.locale-formatted date string used to display the event start time

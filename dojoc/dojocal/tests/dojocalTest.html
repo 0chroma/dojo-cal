@@ -1,0 +1,375 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Strict//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+
+<head>
+	<title>dojocal UI Tester</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=7"/>
+	<link rel="stylesheet" href="../../../dijit/themes/dijit.css" type="text/css"/>
+	<link rel="stylesheet" href="../../../dijit/themes/tundra/tundra.css" type="text/css"/>
+	<link rel="stylesheet" href="../resources/dojocal.css" type="text/css"/>
+	<script src="../../../dojo/dojo.js" type="text/javascript"></script>
+	<script src="../../../dijit/dijit.js" type="text/javascript"></script>
+	<script type="text/javascript">
+		dojo.require('dojo.date.stamp');
+		dojo.require('dojoc.dojocal.SlickGrid');
+		dojo.require('dojoc.dojocal.views.DayView');
+		dojo.require('dojoc.dojocal.views.WeekView');
+		dojo.require('dojoc.dojocal.views.MonthView');
+		// dijits required for testing:
+		dojo.require('dijit.form.NumberSpinner');
+		dojo.require('dijit.form.DateTextBox');
+		dojo.require('dijit.form.Button');
+		dojo.require('dijit.form.TextBox');
+
+		// load it up
+		dojo.addOnLoad(function () {
+
+			// set theme
+			dojo.addClass(dojo.body(), 'tundra');
+
+			// create widgets
+			dojo.parser.parse();
+
+			// create user calendars and add to dojocal
+			var baseDate = dojoc.dojocal.dateOnly(new Date()),
+				dojocal = dijit.byId('cal'),
+				firstCalendarDef = new dojoc.dojocal.CalendarDef({id: 'firstCal', color: '#661100', fontColor: '#665500'}),
+				secondCalendarDef = new dojoc.dojocal.CalendarDef({id: '2ndCal', color: '#001166', fontColor: '#005566'});
+			firstCalendarDef.defaultEventClass = 'dojoc.dojocal.InplaceEditableEvent';
+
+			function addCalEvents (calWidget) {
+				// add calendar definitions
+				calWidget.addCalendarDef(firstCalendarDef);
+				calWidget.addCalendarDef(secondCalendarDef);
+				// Note: all dates should be translated from GMT to local time before they are added
+				calWidget.addEvents(
+					[
+						{
+							startDateTime: dojo.date.add(baseDate, 'hour', 17),
+							duration: 4800,
+							summary: 'St. Nicholas International conf. call',
+							description: '',
+							calendarId: firstCalendarDef.id
+						},
+						{
+							startDateTime: dojo.date.add(dojo.date.add(baseDate, 'day', -1), 'hour', 21),
+							duration: 3600,
+							summary: 'Lunch with Frosty',
+							description: '',
+							calendarId: firstCalendarDef.id
+						},
+						{
+							startDateTime: dojo.date.add(dojo.date.add(baseDate, 'day', 1), 'hour', 21),
+							duration: 4800,
+							summary: 'Intro Lunch with the new elf recruits',
+							description: '',
+							calendarId: firstCalendarDef.id
+						},
+						{
+							startDateTime: dojo.date.add(dojo.date.add(baseDate, 'day', 2), 'hour', 22),
+							duration: 3600,
+							summary: 'Tour of the North Pole facilities improvements',
+							description: '',
+							calendarId: firstCalendarDef.id
+						}
+					]
+				);
+				calWidget.addEvents(
+					[
+						{
+							startDateTime: dojo.date.add(dojo.date.add(baseDate, 'day', 3), 'hour', 18),
+							duration: 7200,
+							summary: 'Rudolph\'s hoof examination',
+							description: '',
+							calendarId: secondCalendarDef.id
+						},
+						{
+							startDateTime: dojo.date.add(dojo.date.add(baseDate, 'day', -2), 'hour', 23),
+							duration: 3600,
+							summary: 'Dr. Van Icicle',
+							description: '',
+							calendarId: secondCalendarDef.id
+						},
+						{
+							startDateTime: dojo.date.add(dojo.date.add(baseDate, 'day', 1), 'hour', 20),
+							duration: 3600,
+							summary: 'Santa Society con call (Mrs. Claus filling in)',
+							description: '',
+							calendarId: secondCalendarDef.id
+						},
+						{
+							startDateTime: dojo.date.add(baseDate, 'day', -5),
+							duration: 60 * 60 * 24 * 7,
+							isAllDay: true,
+							summary: 'Freeze Meister\'s winter visit',
+							description: '',
+							calendarId: secondCalendarDef.id
+						},
+						{
+							startDateTime: dojo.date.add(baseDate, 'day', -2),
+							duration: 60 * 60 * 24 * 7,
+							isAllDay: true,
+							summary: 'Heat Meister\'s winter visit',
+							description: '',
+							calendarId: secondCalendarDef.id
+						}
+					]
+				);
+			}
+
+			addCalEvents(dojocal);
+
+			// set up testing widgets
+			var liveWidgets = dojo.query('.liveWidget').map(dijit.byNode),
+				staticWidgets = dojo.query('.staticWidget').map(dijit.byNode);
+
+			function callCalFunc (w, func) {
+				console.log('calling dojocal method: ', dojocal, func, w.getValue());
+				dojocal[func](w.getValue());
+			}
+
+			function setCalProp (w, prop) {
+				console.log('setting dojocal property: ', dojocal, prop, w.getValue());
+				dojocal[prop] = w.getValue();
+			}
+
+			function recreateCal () {
+
+				// destroy old cal
+				dojocal.destroy();
+
+				// collect properties off the screen
+				var props = {};
+				dojo.forEach(staticWidgets.concat(liveWidgets), function (w) {
+					if (w.id.substr(0, 3) != 'set')
+						props[w.id] = w.getValue();
+				});
+				props['weekStartsOn'] = parseInt(dojo.byId('weekStartsOn').value);
+				props['dndMode'] = parseInt(dojo.byId('dndMode').value);
+
+				// re-create cal
+				var newNode = dojo.doc.createElement('DIV');
+				newNode.id = 'cal';
+
+				dojo.place(newNode, dojo.body(), 'last');
+				dojocal = new dojoc.dojocal.Grid(props, newNode);
+
+				// not sure why I have to do it this way. is it because I used 'class' as a dojocal property?
+				dojo.addClass(dojocal.domNode, 'myDojocal');
+
+				// add views
+				dojocal.addView(new dojoc.dojocal.views.WeekView(props));
+				dojocal.addView(new dojoc.dojocal.views.MonthView(dojo.mixin(props, {
+					selected: true,
+					cornerCellDatePattern: "yy",
+					showLeaderColumn: false
+				})));
+				dojocal.addView(new dojoc.dojocal.views.DayView(props));
+
+				dojocal.startup(); // as usual, call startup after adding to document so rendering works!
+				addCalEvents(dojocal);
+
+			}
+
+			// connect testing widgets' events
+			dojo.forEach(liveWidgets, function (w) {
+				var func = w.id.substr(0, 3) == 'set' ? dojo.partial(callCalFunc, w, w.id) : dojo.partial(setCalProp, w, w.id);
+				dojo.connect(w, 'onChange', func);
+			});
+
+			dojo.connect(dijit.byId('recreateGrid'), 'onClick', recreateCal);
+
+			dojo.connect(dojo.byId('viewMode'), 'change', function (e) {
+				console.log('switching view: ', e.target.value);
+				dojocal.setCurrentView(e.target.value);
+			});
+
+			dojo.connect(dijit.byId('fontSize'), 'onChange', dijit.byId('fontSize'), function (e) {
+				var time = dojocal.getStartOfDay(true);
+				dojocal.domNode.style.fontSize = this.getValue() + 'px';
+				dojocal.setStartOfDay(time);
+			});
+		});
+	</script>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			font-size: 16px;
+			margin: 0;
+			padding: 0;
+		}
+		html.dj_ie,
+		.dj_ie body {
+			font-size: 100%;
+			height: 100%;
+			width: 100%
+		}
+		.myDojocal {
+			position: absolute;
+			top: 64px;
+			bottom: 8px;
+			left: 300px;
+			right: 8px;
+			border: 1px solid #ccc;
+		}
+		.dj_ie .myDojocal {
+			right: ;
+			bottom: ;
+			height: expression(document.body.clientHeight - offsetTop - 8 + 'px');
+			width: expression(document.body.clientWidth - offsetLeft - 8 + 'px');
+		}
+		.mySwitcher {
+			white-space: nowrap;
+		}
+		.myParamsContainer .p {
+			line-height: 1.5em;
+			margin: 4px 0;
+		}
+		.myParamsContainer {
+			position: absolute;
+			top: 4px;
+			left: 4px;
+			bottom: 4px;
+			padding: 0 4px;
+			border: 1px solid #aaa;
+			background-color: #f0f0f0;
+			width: 276px;
+			font-size: 75%;
+			overflow-y: auto;
+			overflow-x: hidden;
+			vertical-align: baseline;
+		}
+		.dj_ie6 .myParamsContainer {
+			bottom: expression('4px');
+			height: expression(offsetParent.offsetHeight - offsetTop - style.pixelBottom + 'px');
+		}
+		.myTitleArea {
+			position: absolute;
+			top: 0;
+			left: 300px;
+			height: 64px;
+		}
+		.hint {
+			color: #aaa;
+			font-size: 80%;
+		}
+		h3 {
+			margin-bottom: 0;
+		}
+	</style>
+</head>
+
+<body>
+
+	<div class="myParamsContainer">
+
+		<h3>Live parameters:</h3>
+		<div class="hint">(these update immediately)</div>
+
+		<div class="liveParams">
+			<div class="p">
+				view:
+				<select id="viewMode" style="width: 8em;">
+					<option value="DAY">Day</option>
+					<option value="WEEK">Week</option>
+					<option value="MONTH" selected="selected">Month</option>
+				</select>
+				<!--<div dojoType="dojoc.dojocal.ViewSwitcher" viewModes="['day','week']" class="liveParams mySwitcher" id="viewMode"></div>-->
+			</div>
+			<div class="p">
+				userChangeResolution:
+				<div dojoType="dijit.form.NumberSpinner" class="liveWidget" value="15" smallDelta="5" class="liveParams" style="width: 7.5em;" id="userChangeResolution" intermediateChanges="true"></div>
+				<div class="hint">(for dragging) try 5, 15, or 30</div>
+			</div>
+			<div class="p">
+				animationDuration:
+				<div dojoType="dijit.form.NumberSpinner" class="liveWidget" value="250" smallDelta="50" class="liveParams" largeDelta="250" style="width: 7.5em;" id="animationDuration" intermediateChanges="true"></div>
+				<div class="hint">try 250 or 500 (or even 5000 to watch view transitions, but <br/>click on a day with events first!)</div>
+			</div>
+			<div class="p">
+				date:
+				<div dojoType="dijit.form.DateTextBox" class="liveWidget" value="" style="width: 7.5em;" class="liveParams" id="setDate" intermediateChanges="true"></div>
+			</div>
+			<div class="p">
+				base fontSize (via CSS):
+				<div id="fontSize" class="" dojoType="dijit.form.NumberSpinner" value="16" constraints="{max:24,min:6}" style="width: 7.5em;" intermediateChanges="true"></div>
+				<div class="hint">(the grid's scrollTop needs to be reset after changing font size)</div>
+			</div>
+		</div>
+
+		<hr>
+
+		<div class="p" style="float: right;">
+			<div id="recreateGrid" dojoType="dijit.form.Button" label="Re-create grid"></div>
+		</div>
+		<h3>Static parameters:</h3>
+		<div class="hint">(click "Re-create grid" button to see changes)</div>
+
+		<div class="staticParams">
+			<div class="p">
+				minutesPerGridLine:
+				<div id="minutesPerGridLine" class="staticWidget" dojoType="dijit.form.NumberSpinner" value="15" smallDelta="5" class="staticParams" style="width: 7.5em;"></div>
+			</div>
+			<div class="p">
+				initialStartTime:
+				<div id="initialStartTime" class="staticWidget" dojoType="dijit.form.NumberSpinner" value="480" smallDelta="15" largeDelta="60" class="staticParams" style="width: 7.5em;"></div>
+			</div>
+			<div class="hint">(date/time patterns are in dojo.date.locale)</div>
+			<div class="p">
+				timeCellDatePattern:
+				<div id="timeCellDatePattern" class="staticWidget" dojoType="dijit.form.TextBox" value="h:mm a" class="staticParams" style="width: 8em;"></div>
+			</div>
+			<div class="p">
+				dayHeaderDatePattern:
+				<div id="dayHeaderDatePattern" class="staticWidget" dojoType="dijit.form.TextBox" value="EEEE MMMM dd, yyyy" class="staticParams" style="width: 8em;"></div>
+			</div>
+			<div class="p">
+				weekHeaderDatePattern:
+				<div id="weekHeaderDatePattern" class="staticWidget" dojoType="dijit.form.TextBox" value="EEE M/dd" class="staticParams" style="width: 8em;"></div>
+			</div>
+			<div class="p">
+				cornerCellDatePattern:
+				<div id="cornerCellDatePattern" class="staticWidget" dojoType="dijit.form.TextBox" value="yyyy" class="staticParams" style="width: 8em;"></div>
+			</div>
+			<div class="p">
+				allDayEventAreaLabel:
+				<div id="allDayEventAreaLabel" class="staticWidget" dojoType="dijit.form.TextBox" value="All Day" class="staticParams" style="width: 8em;"></div>
+			</div>
+			<div class="p">
+				weekStartsOn:
+				<select id="weekStartsOn" style="width: 8em;">
+					<option value="0">Sunday</option>
+					<option value="1">Monday</option>
+					<option value="2">Tuesday</option>
+					<option value="3">Wednesday</option>
+					<option value="4">Thursday</option>
+					<option value="5">Friday</option>
+					<option value="6">Saturday</option>
+				</select>
+			</div>
+			<div class="p">
+				dndMode:
+				<select id="dndMode" style="width: 8em;">
+					<option value="0">None</option>
+					<option value="1" selected="selected">Discrete</option>
+					<option value="2">Fluid</option>
+				</select>
+			</div>
+		</div>
+	</div>
+
+	<div class="myTitleArea">
+		<h1>dojocal UI Tester</h1>
+	</div>
+
+
+	<div id="cal" dojoType="dojoc.dojocal.SlickGrid" class="myDojocal">
+		<div dojoType="dojoc.dojocal.views.WeekView"></div>
+		<div dojoType="dojoc.dojocal.views.MonthView" selected="true" cornerCellDatePattern="yy" showLeaderColumn="false"></div>
+		<div dojoType="dojoc.dojocal.views.DayView"></div>
+	</div>
+
+
+</body>
+
+</html>

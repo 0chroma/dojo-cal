@@ -23,6 +23,7 @@ dojo.declare('dojoc.dojocal._base.Mover', dojo.dnd.Mover, {
 
 	onFirstMove: function () {
 		// don't try to interpret the left and top as pixels since they're probably as %!
+		// Note: this was fixed in 1.3
 		var m = dojo.marginBox(this.node);
 		this.marginBox.l = m.l - this.marginBox.l;
 		this.marginBox.t = m.t - this.marginBox.t;

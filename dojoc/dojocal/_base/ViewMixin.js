@@ -45,10 +45,20 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 	// change this property on subclassed views to use your own custom event widgets
 	eventClass: 'dojoc.dojocal.Event',
 
+	// defaultEventClass: String
+	// a fully-qualified dijit class to be used to create new event widgets
+	// TODO: use this when auto-creating events from data store? or remove this?
+	defaultEventClass: 'dojoc.dojocal.Event',
+
 	// eventPositionerClass: String
 	// change this property to create your own event positioner
 	// see dojoc.dojocal._base.EventPositioner for more info
 	eventPositionerClass: '',
+
+	// eventMoveableClass: String
+	// change this property to specify a different class to operate teh drag-and-drop
+	// modification of Event widgets
+	eventMoveableClass: '',
 
 	// minutesPerGridLine: Integer
 	// number of minutes between horizontal grid lines
@@ -86,11 +96,6 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 	// cause multi-day events to display improperly (despite being fully functional)
 	// TODO: create a new view rather than use this property?
 	showWeekends: true,
-
-	// defaultEventClass: String
-	// a fully-qualified dijit class to be used to create new event widgets
-	// TODO: use this when auto-creating events from data store? or remove this?
-	defaultEventClass: 'dojoc.dojocal.Event',
 
 	// dndMode: dojoc.dojocal.DndModes
 	// level of drag and drop:
@@ -143,7 +148,7 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 	getEndDate: function () {
 		// summary: returns the latest date at which events show
 		// getEndDate points just past the actual end date of the view, so
-		// always test getEndDate by using < rather than <= 
+		// always test getEndDate by using < rather than <=
 		return this._endDate;
 	},
 
@@ -153,7 +158,7 @@ dojo.declare('dojoc.dojocal._base.ViewMixin', dijit._Contained, {
 		//   the minute of the day. e.g. 450 (min) == 7.5 (hr) * 60 == 7:30 am
 		// TODO: allow user to pass "auto" to try to scroll as many imminent events into view???
 		// TODO: FIXME: I don't think this belongs here
-		dojo.publish('dojoc.dojocal.' + this.widgetid + '.setStartOfDay', [minuteOfDay]);
+		//dojo.publish('dojoc.dojocal.' + this.widgetid + '.setStartOfDay', [minuteOfDay]);
 	},
 
 	getStartOfDay: function (/* Boolean? */ exact) {
