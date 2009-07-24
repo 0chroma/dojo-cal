@@ -143,7 +143,7 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	//   dojoc.dojocal.DndModes.NONE -- drag and drop is not enabled
 	//   dojoc.dojocal.DndModes.FLUID -- drag and drop uses a free-form method to allow smoother dragging
 	//   dojoc.dojocal.DndModes.DISCRETE -- drag and drop snaps to valid positions only
-	dndMode: dndModes.DISCRETE,
+	dndMode: dndModes.NONE,
 
 	// dndDetectDistance: Number
 	// the distance a user must drag before a drag and drop operation is detected
