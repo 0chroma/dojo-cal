@@ -275,6 +275,10 @@ dojo.declare('dojoc.dojocal.views.MonthView', [djc._base.ViewBase, dijit._Templa
 		dojo.query('.dojocalMonthRow', this.monthTableNode).forEach(function (row) {
 			dojo.style(row, 'display', (row.rowIndex > rowsUsed) ? 'none' : '');
 		});
+		// IE needs some additional help or it won't size te contents of the cells correctly (even though the cells are sized correctly)
+		if (dojo.isIE) {
+			dojo.query('TD.dojocalDayCell', this.monthTableNode).style('height', 1 / (rowsUsed + 1) * 100 + '%');
+		}
 	},
 
 	_checkDayHighlighting: function () {

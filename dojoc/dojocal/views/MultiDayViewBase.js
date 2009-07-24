@@ -285,14 +285,13 @@ dojo.declare('dojoc.dojocal.views.MultiDayViewBase', [dojoc.dojocal._base.ViewBa
 
 	/* handy day-of-week translators */
 
-	// override these for multi-week views that arent' 7-days wide!
-
 	_dayOfWeekToCol: function (dayOfWeek) {
-		return (dayOfWeek - this.weekStartsOn) % 7;
+		var offset = dayOfWeek - this.weekStartsOn;
+		return offset - Math.floor(offset / this.dayCount) * this.dayCount;
 	},
 
 	_colToDayOfWeek: function (colNum) {
-		return (colNum + this.weekStartsOn) % 7;
+		return (colNum + this.weekStartsOn) % this.dayCount;
 	},
 
 	_nodeToCol: function (node) {

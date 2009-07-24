@@ -271,8 +271,8 @@
 				view:
 				<select id="viewMode" style="width: 8em;">
 					<option value="DAY">Day</option>
-					<option value="WEEK">Week</option>
-					<option value="MONTH" selected="selected">Month</option>
+					<option value="WEEK" selected="selected">Week</option>
+					<option value="MONTH">Month</option>
 				</select>
 				<!--<div dojoType="dojoc.dojocal.ViewSwitcher" viewModes="['day','week']" class="liveParams mySwitcher" id="viewMode"></div>-->
 			</div>
@@ -350,8 +350,8 @@
 			<div class="p">
 				dndMode:
 				<select id="dndMode" style="width: 8em;">
-					<option value="0">None</option>
-					<option value="1" selected="selected">Discrete</option>
+					<option value="0" selected="selected">None</option>
+					<option value="1">Discrete</option>
 					<option value="2">Fluid</option>
 				</select>
 			</div>
@@ -364,8 +364,8 @@
 
 
 	<div id="cal" dojoType="dojoc.dojocal.SlickGrid" class="myDojocal">
-		<div dojoType="dojoc.dojocal.views.WeekView"></div>
-		<div dojoType="dojoc.dojocal.views.MonthView" selected="true" cornerCellDatePattern="yy" showLeaderColumn="false"></div>
+		<div dojoType="dojoc.dojocal.views.WeekView" selected="true"></div>
+		<div dojoType="dojoc.dojocal.views.MonthView" cornerCellDatePattern="yy" showLeaderColumn="false"></div>
 		<div dojoType="dojoc.dojocal.views.DayView"></div>
 	</div>
 

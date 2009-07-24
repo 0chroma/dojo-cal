@@ -410,6 +410,10 @@ dojo.declare('dojoc.dojocal.Grid', [dijit._Widget, dijit._Templated, dijit._Cont
 	startup: function () {
 //console.log('startup')
 		this.inherited(arguments);
+		// add class to indicate dnd
+		if (this.dndMode != dndModes.NONE) {
+			dojo.addClass(this.domNode, 'dojocalDnd');
+		}
 		// gather views
 		// TODO: ensure that we have no duplicate views (by view.name)?
 		this._views = this.getChildren();

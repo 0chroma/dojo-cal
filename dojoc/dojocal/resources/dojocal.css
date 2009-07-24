@@ -300,6 +300,11 @@
 	border-top: 1px solid #cccccc;
 }
 
+.dj_ie6 .monthView .dojocalDayCell,
+.dj_ie7 .monthView .dojocalDayCell {
+	position: relative; /* IE needs this to propagate height to children */
+}
+
 .monthView .dojocalDayCellFirst {
 	/* style as needed */
 }
@@ -517,7 +522,7 @@
 	padding: 0 1px 0 1px;
 }
 
-.dojocal .draggableEvent {
+.dojocal.dojocalDnd .draggableEvent {
 	cursor: move;
 }
 
@@ -646,6 +651,11 @@
 	width: 100%;
 	height: 0.5em;
 	cursor: s-resize;
+	display: none; /* see .dojocalDnd .dojocalEventHandle */
+}
+
+.dojocalDnd .dojocalEventHandle {
+	display: block !important;
 }
 
 .dojocalEventHandleThumb {
@@ -680,6 +690,7 @@
 	width: 0.5em;
 	height: 100%;
 	cursor: e-resize;
+	display: none; /* see .dojocalDnd .dojocalEventHandle */
 }
 
 .dojocalMultiday .dojocalEventHandleThumb {
@@ -743,13 +754,14 @@
 }
 
 .dojocalMultiday.middleDay .dojocalEventHandle {
-	display: none;
+	display: none !important;
 }
 
 .dojocalMultiday.firstDay .dojocalEventHandle {
 	right: auto;
 	left: 0;
 	cursor: w-resize;
+	display: none; /* see .dojocalDnd .dojocalEventHandle */
 }
 
 .dojocalMultiday .dojocalEventTitle {
@@ -781,5 +793,15 @@
 }
 
 .monthView .dojocalEventTitle {
+	padding-top: 1px; /* to match .dojocalMultiDay .dojocalEventTitle padding-top */
 	white-space: nowrap;
+}
+
+.monthView .dojocalMonthColumn {
+	height: 100%; /* IE needs this */
+}
+
+.monthView .dojocalBody {
+	position: absolute; /* IE needs this for some strange reason */
+	width: 100%;
 }

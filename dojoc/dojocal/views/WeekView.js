@@ -69,7 +69,7 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 			if (startDate < endDate) {
 				// loop through entire week and add pseudo widgets if needed
 				var weekFirst = djc.maxDate(startDate, this._startDate),
-					weekLast = djc.minDate(endDate, this._endDate),
+					weekLast = djc.minDate(endDate, dojo.date.add(this._endDate, 'day', -1)),
 					date = weekFirst,
 					pos = this._dayOfWeekToCol(weekFirst.getDay()),
 					visCount = 1, // count of visible widgets for this event
@@ -111,7 +111,7 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 					pos++;
 					date = dojo.date.add(date, 'day', 1);
 				}
-				while (date < weekLast);
+				while (date <= weekLast);
 				if (visCount > 0)
 					showTitle(currWidget, visCount);
 			}

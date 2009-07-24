@@ -69,31 +69,33 @@ dojo.declare('dojoc.dojocal.views.DayView', dojoc.dojocal.views.MultiDayViewBase
 				marginLeft: -(size - 2) +'px' // fine-tuning due to table cell borders / event padding. TODO: get the padding from computed style
 			});
 		}
-		if (eWidget.isAllDay()) {
-			// check for event splitting due to multi-day events
-			var date = this.date,
-				startDate = eWidget.getDateTime(),
-				endDate = eWidget.getEndDateTime();
-			if (startDate < endDate) {
-				// check for first, last, or intra-day
-				var isFirstDay = eWidget._isFirstDay = dojo.date.compare(date, startDate, 'date') == 0,
-					isLastDay = eWidget._isLastDay = dojo.date.compare(date, endDate, 'date') == 0,
-					isIntraDay = !isFirstDay && !isLastDay,
-					classes = ['dojocalAllDay dojocalMultiday'];
-				// add appropriate classes
-				if (isFirstDay)
-					classes.push('firstDay');
-				if (isLastDay)
-					classes.push('lastDay');
-				if (isIntraDay)
-					classes.push('middleDay');
-				dojo.addClass(eWidget.domNode, classes.join(' '));
+		if (eWidget.getDateTime() <= this._endDate && eWidget.getEndDateTime() >= this._startDate) {
+			if (eWidget.isAllDay()) {
+				// check for event splitting due to multi-day events
+				var date = this.date,
+					startDate = eWidget.getDateTime(),
+					endDate = eWidget.getEndDateTime();
+				if (startDate < endDate) {
+					// check for first, last, or intra-day
+					var isFirstDay = eWidget._isFirstDay = dojo.date.compare(date, startDate, 'date') == 0,
+						isLastDay = eWidget._isLastDay = dojo.date.compare(date, endDate, 'date') == 0,
+						isIntraDay = !isFirstDay && !isLastDay,
+						classes = ['dojocalAllDay dojocalMultiday'];
+					// add appropriate classes
+					if (isFirstDay)
+						classes.push('firstDay');
+					if (isLastDay)
+						classes.push('lastDay');
+					if (isIntraDay)
+						classes.push('middleDay');
+					dojo.addClass(eWidget.domNode, classes.join(' '));
+				}
+				this._addEventToAllDayLayout(eWidget, this._allDayLayouts[0]);
+				showTitle(eWidget, 1);
 			}
-			this._addEventToAllDayLayout(eWidget, this._allDayLayouts[0]);
-			showTitle(eWidget, 1);
+			else
+				this._addEventToDayLayout(eWidget, this._dayLayouts[0]);
 		}
-		else
-			this._addEventToDayLayout(eWidget, this._dayLayouts[0]);
 	},
 
 	_checkDayHighlighting: function () {
