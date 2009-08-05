@@ -52,7 +52,7 @@ dojo.declare('dojoc.dojocal.views.WeekView', dojoc.dojocal.views.MultiDayViewBas
 			// we use the last widget since it's topmost in the z-order (we'd have to change the
 			// z-index of the TDs to fix this)
 			dojo.style(widget.domNode, {
-				overflow: 'visible', // allows text to spread across cloned events
+				overflowX: 'visible', // allows text to spread across cloned events
 				zIndex: '10' // overrides hovered/selected of other events which covers title text
 			});
 			dojo.style(widget.titleNode, {

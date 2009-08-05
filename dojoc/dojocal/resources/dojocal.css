@@ -68,8 +68,9 @@
 	border-collapse: collapse; /* not all browsers cascade this, so repeat it here */
 }
 
+.dj_ie6 .dojocalDaysColumn,
 .dj_ie7 .dojocalDaysColumn {
-	/* TODO: how to detect this and remove browser sniff dependency? */
+	vertical-align: top; /* IE 6 needs this or it will look strange during resizing */
 	height: 100%; /* IE 7 needs this */
 }
 
@@ -161,7 +162,7 @@
 	background: ;
 	font-size: 1px; /* Prevents IE 6 from making div too tall */
 	line-height: 1px; /* Prevents IE 6 from making div too tall */
-	filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src='images/dojocalContainerShadow.png', sizingMethod='scale')
+	filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src='../resources/images/dojocalContainerShadow.png', sizingMethod='scale')
 }
 
 .dojocalContainer {
@@ -177,21 +178,21 @@
 }
 
 .monthView .dojocalContainer {
-	bottom: 0; /* no need ot reserve room for the splitter */
+	bottom: 0; /* no need to reserve room for the splitter */
 	overflow-y: hidden;
 }
 
 .dj_iequirks .dojocalContainer,
 .dj_ie6 .dojocalContainer {
-	height: expression(offsetParent.offsetHeight - offsetTop - 80 + "px"); /* 80px matches height of dojocalFooterWrap */
+	height: expression(offsetParent.offsetHeight - offsetTop - style.pixelBottom + "px");
 	width: 100%;
-	bottom: ; /* must clear this out for IE 6 to use the width/height */
-	right: ; /* must clear this out for IE 6 to use the width/height */
+	bottom: expression('80px'); /* 80px matches height of dojocalFooterWrap */
+	right: ; /* must clear this out for IE 6 to use the width */
 }
 
 .dj_iequirks .monthView .dojocalContainer,
 .dj_ie6 .monthView .dojocalContainer {
-	height: expression(offsetParent.offsetHeight - offsetTop + "px"); /* no need ot reserve room for the splitter */
+	height: expression(offsetParent.offsetHeight - offsetTop + "px"); /* no need to reserve room for the splitter */
 }
 
 .dojocalBody {
@@ -217,6 +218,11 @@
 	border-collapse: collapse; /* not all browsers cascade this, so repeat it here */
 }
 
+.dj_iequirks TR.dojocalSingleRow,
+.dj_ie6 TR.dojocalSingleRow {
+	height: 100%; /* IE6 can't figure out height of elements in TDs unless we set this */
+}
+
 .dojocalTable {
 	position: relative;
 	z-index: 1; /* keep it above the dojocalDayRowsContainer horizontal lines (day view) */
@@ -228,11 +234,6 @@
 	border: 0;
 	border-right: 1px solid #cccccc;
 	border-collapse: collapse; /* not all browsers cascade this, so repeat it here */
-}
-
-.dj_iequirks .dojocalTable,
-.dj_ie6 .dojocalTable {
-	margin-bottom: -4px; /* fixes IE 6's bogus table sizing */
 }
 
 .dojocalTimeColumn {
@@ -343,11 +344,13 @@
 }
 
 .dj_ie6 .dojocalDay-selected {
-	filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src="images/day-highlight-selected.png", sizingMethod="scale");
+	background: none;
+	filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src="../resources/images/day-highlight-selected.png", sizingMethod="scale");
 }
 
 .dj_ie6 .dojocalDay-today {
-	filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src="images/day-highlight-today.png", sizingMethod="scale");
+	background: none;
+	filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src="../resources/images/day-highlight-today.png", sizingMethod="scale");
 }
 
 .dojocalTimeMarker {
@@ -382,6 +385,10 @@
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
+}
+
+.dj_ie6 .dojocalDayRowsContainer {
+	height: 96em; /* IE6 can't find height of parent for some reason */
 }
 
 .dojocalDayRow {
@@ -439,6 +446,7 @@
 	background-color: #ffffff;
 	cursor: n-resize;
 	cursor: row-resize;
+	overflow: hidden; /* prevents IE from expanding box with a bogus text node */
 }
 
 .dojocalSplitter.dojoMoveItem {
@@ -446,11 +454,12 @@
 }
 
 .dojocalSplitterThumb {
-	margin: 0 auto; /* TODO: IE6 hack for this */
+	margin: 0 auto;
 	width: 2em;
 	height: 1px;
 	padding-top: 1px;
 	border-bottom: 2px solid #999999;
+	overflow: hidden; /* prevents IE from expanding box with a bogus text node */
 }
 
 .dojocalSplitterWillCollapse {
@@ -472,9 +481,9 @@
 	border-right: 1px solid #cccccc;
 }
 
-.dj_ie6 .dojocalFooter {
+/*.dj_ie6 .dojocalFooter {
 	height: expression(offsetParent.offsetHeight - offsetTop + "px");
-}
+}*/
 
 .dojocalTableOuter {
 	table-layout: fixed;
@@ -588,7 +597,7 @@
 }
 
 .dojocalEventTitle {
-	position: relative; /* to keep it above the background */
+	position: absolute; /* to keep it above the background (IE6 needs absolute, not relative) */
 	margin: 0 4px;
 }
 
@@ -610,10 +619,12 @@
 
 .dojocalEventBackground {
 	position: absolute;
+	width: 100%;
+	height: 100%;
 	left: 0;
-	right: 0;
+	/*right: 0;*/
 	top: 0;
-	bottom: 0;
+	/*bottom: 0;*/
 	border-radius: 5px;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
@@ -623,14 +634,15 @@
 	background-color: #777;
 }
 
+/*.dj_iequirks .dojocalEventBackground,*/
+/*.dj_ie6 .dojocalEventBackground,*/
 .dj_iequirks .dojocalEventBorder,
-.dj_iequirks .dojocalEventBackground,
-.dj_ie6 .dojocalEventBorder,
-.dj_ie6 .dojocalEventBackground {
+.dj_ie6 .dojocalEventBorder {
 	right: ;
 	bottom: ;
-	width: expression(offsetParent.offsetWidth + 'px');
-	height: expression(offsetParent.offsetHeight + 'px');
+	/* we're subtracting 2 to accommodate the border widths (IE box model issue) */
+	width: expression(offsetParent.offsetWidth - 2 + 'px');
+	height: expression(offsetParent.offsetHeight - 2 + 'px');
 }
 
 .dojocalEvent-hovered,
@@ -677,7 +689,6 @@
 
 .dojocalFooter .dojocalEvent {
 	height: 1.5em;
-	/*position: relative;*/
 }
 
 .dojocalAllDay .dojocalEventTime {
@@ -707,6 +718,16 @@
 	/* overlap the right border of a calendar column/cell */
 	/* padding works here since we're using box offsets to place the border and background */
 	padding: 0 1px 0 0;
+}
+
+.dj_ie6 .dojocalMultiday.firstDay,
+.dj_iequirks .dojocalMultiday.firstDay,
+.dj_ie6 .dojocalMultiday.middleDay,
+.dj_iequirks .dojocalMultiday.middleDay {
+	/* overlap the right border of a calendar column/cell */
+	/* padding does not work for IE6 */
+	margin-left: -1px;
+	width: expression(offsetParent.offsetWidth + 1 + 'px'); /* compensate for cell borders */
 }
 
 .dojocalMultiday.lastDay {
@@ -779,6 +800,10 @@
 }
 
 /* month view */
+
+.monthView .dojocalEvent {
+	height: 1.5em;
+}
 
 .monthView .dojocalEventTime {
 	display: none;
