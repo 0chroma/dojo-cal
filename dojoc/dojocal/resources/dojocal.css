@@ -733,7 +733,7 @@
 .dojocalMultiday.titleDay,
 .dojocalMultiday.firstDay {
 	overflow: visible; /* allows text to spread across cloned events */
-	z-index: 20; /* overrides hovered/selected of other events which covers title text */
+	z-index: 30; /* overrides hovered/selected of other events which covers title text */
 }
 
 .dojocalMultiday.firstDay .dojocalEventBackground,
