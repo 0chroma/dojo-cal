@@ -730,8 +730,10 @@
 	width: expression(offsetParent.offsetWidth + 1 + 'px'); /* compensate for cell borders */
 }
 
-.dojocalMultiday.lastDay {
-	/* style as needed */
+.dojocalMultiday.titleDay,
+.dojocalMultiday.firstDay {
+	overflow: visible; /* allows text to spread across cloned events */
+	z-index: 20; /* overrides hovered/selected of other events which covers title text */
 }
 
 .dojocalMultiday.firstDay .dojocalEventBackground,
@@ -769,9 +771,9 @@
 }
 
 .dojocalMultiday.firstDay .dojocalEventTitle,
-.dojocalMultiday.middleDay .dojocalEventTitle {
-	/* let the last widget show the title since it is topmost because of the TDs */
-	visibility: hidden;
+.dojocalMultiday.titleDay .dojocalEventTitle {
+	/* let the first widget show the title */
+	visibility: visible;
 }
 
 .dojocalMultiday.middleDay .dojocalEventHandle {
@@ -791,6 +793,7 @@
 		but is causing width issues. fix some other way?) */
 	margin: 0;
 	padding: 1px 4px 0 4px;
+	visibility: hidden;
 }
 
 .dojocalFooter .dojocalEventHandleThumb {

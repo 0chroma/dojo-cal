@@ -90,16 +90,17 @@ dojo.declare('dojoc.dojocal.views.MonthView', [djc._base.ViewBase, dijit._Templa
 		function showTitle (widget, size) {
 			// expand title to span all pseudo-widgets. we use the last widget since it's topmost in the z-order
 			// (we'd have to change the z-index of the TDs to fix this)
-			dojo.style(widget.domNode, {
-				overflow: 'visible', // allows text to spread across cloned events
-				zIndex: '10' // overrides hovered/selected classes of other events which would otherwise cover title text
-			});
+//			dojo.style(widget.domNode, {
+//				overflow: 'visible', // allows text to spread across cloned events
+//				zIndex: '10' // overrides hovered/selected classes of other events which would otherwise cover title text
+//			});
+			dojo.addClass(widget.domNode, 'titleDay');
 			dojo.style(widget.titleNode, {
-				visibility: 'visible',
+//				visibility: 'visible',
 				overflow: 'hidden', // this is important to keep the text from oveflowing since we're letting the domNode overflow
-				width: size * 100 + '%', // span all sister-widgets in this row
-				left: -(size - 1) * 100 + '%', // position at first sister-widget
-				marginLeft: -(size - 1) +'px' // fine-tuning due to table cell borders / event padding. TODO: get the padding from computed style
+				width: size * 100 + '%'//, // span all sister-widgets in this row
+//				left: -(size - 1) * 100 + '%', // position at first sister-widget
+//				marginLeft: -(size - 1) +'px' // fine-tuning due to table cell borders / event padding. TODO: get the padding from computed style
 			});
 		}
 		if (eWidget.isAllDay()) {
@@ -112,15 +113,17 @@ dojo.declare('dojoc.dojocal.views.MonthView', [djc._base.ViewBase, dijit._Templa
 					dtLast = djc.minDate(endDate, datelib.add(dtFirst, 'day', 6)),
 					date = dtFirst,
 					pos = this._dateToCellPos(dtFirst),
-					visCount = 1, // count of visible widgets for this event
+					visCount = 0, // count of visible widgets for this event
 					currWidget = eWidget,
-					root; // the first widget (set below)
+					root, // the first widget (set below)
+					firstOfWeek; // the widgets that fall on the first day of each week
 				do {
 					// create the root widget if we haven't already
 					if (!root) {
 						root = currWidget;
 						var node = eWidget.domNode,
 							baseClasses = node.className;
+						firstOfWeek = root;
 					}
 					else {
 						currWidget = this._cloneEventWidget(eWidget);
@@ -128,10 +131,14 @@ dojo.declare('dojoc.dojocal.views.MonthView', [djc._base.ViewBase, dijit._Templa
 						node = currWidget.domNode;
 						visCount++;
 					}
-					// if we hit the end of the week, show the title for the widgets in this week
-					if ((pos + 1) % 7 == 0) {
-						showTitle(currWidget, visCount);
-						visCount = 0;
+					// if we are at the start of the week, show the title
+					if (pos % 7 == 0) {
+						// fix-up previous firstOfWeek
+						if (firstOfWeek)
+							showTitle(firstOfWeek, visCount);
+						// set new one
+						firstOfWeek = currWidget;
+						visCount = 1;
 					}
 					this._addEventToLayout(currWidget, this._dayLayouts[pos]);
 					// check for first, last, or intra-day
@@ -148,14 +155,13 @@ dojo.declare('dojoc.dojocal.views.MonthView', [djc._base.ViewBase, dijit._Templa
 						classes.push('middleDay');
 					if (currWidget != root)
 						classes.push('pseudoDay');
-					node.className = classes.join(' ');
+					dojo.addClass(node, classes.join(' '));
 					pos++;
 					date = datelib.add(date, 'day', 1);
 				}
 				while (date <= dtLast);
-				// if we've hit the end of the event's range (0 means we just executed showtitle above, so don't repeat)
-				if (visCount > 0)
-					showTitle(currWidget, visCount);
+				if (firstOfWeek)
+					showTitle(firstOfWeek, visCount);
 			}
 			// otherwise, single-day event
 			else {
